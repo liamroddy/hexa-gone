@@ -73,7 +73,7 @@
     border: 2px solid var(--colour-highlight);
   }
 
-  &.btn-back {
+  &.btn-main-menu {
     background: transparent;
     color: var(--colour-text);
     font-size: 1rem;

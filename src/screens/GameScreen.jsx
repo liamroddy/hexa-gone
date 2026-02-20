@@ -119,7 +119,7 @@ export default function GameScreen({ onBack }) {
       <p className="pieces-left">{activeIds.size} pieces remaining</p>
       <div className="bottom-buttons">
         <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
-        <button className="btn btn-back" onClick={onBack}>Back</button>
+        <button className="btn btn-main-menu" onClick={onBack}>Main Menu</button>
       </div>
 
       {isWon && (
