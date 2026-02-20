@@ -109,13 +109,6 @@ export default function GameScreen({ onBack }) {
 
   return (
     <div className="screen game-screen">
-      {isWon && (
-        <div className="win-banner">
-          <p className="win-message">Board cleared</p>
-          <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
-          <button className="btn btn-new-game" onClick={handleNewGame}>New Game</button>
-        </div>
-      )}
       <HexBoard
         nodes={nodes}
         hexSize={30}
@@ -124,8 +117,22 @@ export default function GameScreen({ onBack }) {
         activeIds={activeIds}
       />
       <p className="pieces-left">{activeIds.size} pieces remaining</p>
-      <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
-      <button className="btn btn-back" onClick={onBack}>Back</button>
+      <div className="bottom-buttons">
+        <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
+        <button className="btn btn-back" onClick={onBack}>Back</button>
+      </div>
+
+      {isWon && (
+        <div className="modal-overlay" onClick={handleNewGame}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <p className="win-message">Congrats, board cleared!</p>
+            <div className="modal-buttons">
+              <button className="btn btn-new-game" onClick={handleNewGame}>New Game</button>
+              <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
