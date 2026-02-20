@@ -138,112 +138,140 @@ export function buildGridStructure(radius = 2) {
 
 
 /**
+ * Find all valid (escapable) directions for a node.
+ * A direction is valid if walking that way reaches the board edge
+ * without hitting any already-assigned node.
+ */
+function getEscapeDirs(node, nodeMap) {
+  return ALL_DIRECTIONS.filter(dir => canEscape(node, dir, nodeMap))
+}
+
+/**
  * Solvable board generation algorithm.
  *
- * The idea: we assign arrow directions to every node such that each node
- * has a clear path (following its arrow) off the edge of the board.
- * Nodes are assigned in clusters ("continuous pieces") so nearby nodes
- * get arrows in sequence, creating interesting gameplay patterns.
+ * Key invariant: assignment order is the reverse of solve order.
+ * The first node assigned will be the last one solved (removed).
+ * So when we assign a node, its path must be clear of all
+ * previously-assigned nodes (those will still be on the board
+ * when this node is finally played).
+ *
+ * To guarantee termination, we only ever pick from nodes that
+ * currently have at least one escapable direction. This is always
+ * non-empty: among the unassigned nodes, those on the boundary
+ * of the "assigned region" will always have at least one direction
+ * that leads through only unassigned nodes to the board edge.
+ *
+ * We use clusters for interesting gameplay patterns — we
+ * prefer to pick adjacent escapable nodes to continue a cluster,
+ * but we never pick a node that has zero valid directions.
  *
  * Algorithm:
- * 1. Start with an empty board (all arrowDirections undefined).
- * 2. Pick a random "continuousPieces" count (1–10). This is how many
- *    nodes we'll try to assign in a connected cluster before jumping
- *    to a new random location.
- * 3. Pick a random undefined node.
- * 4. Try assigning a random arrow direction to it.
- * 5. Validate: walk in that direction — if we reach the board edge
- *    without hitting any already-defined node, it's valid.
- * 6. If valid, commit the arrow. Increment the cluster counter.
- * 7. If the cluster isn't full yet, pick an adjacent undefined node
- *    to continue the cluster. If no adjacent undefined node exists,
- *    reset the cluster (pick a new random undefined node).
- * 8. If the cluster is full, reset: new cluster size, pick a new
- *    random undefined node.
- * 9. Repeat until every node has an arrow direction.
+ * 1. Build the set of "escapable" unassigned nodes (those with ≥1
+ *    valid direction given the current assigned state).
+ * 2. Pick one (preferring cluster-adjacent if possible).
+ * 3. Assign a random valid direction.
+ * 4. Update: the newly assigned node may block neighbors' paths,
+ *    so recompute which neighbors are still escapable.
+ * 5. Repeat until all nodes are assigned.
  */
 export function generateSolvableBoard(radius = 2) {
   const { nodes, nodeMap } = buildGridStructure(radius)
 
-  // Track which nodes still need an arrow direction
-  const undefinedSet = new Set(nodes.map(n => n.id))
+  const unassigned = new Set(nodes.map(n => n.id))
 
-  // Generate a new cluster size (1 to 10)
+  // Cache of escapable directions per unassigned node
+  // We'll maintain this incrementally.
+  const escapeDirCache = new Map()
+  for (const node of nodes) {
+    escapeDirCache.set(node.id, getEscapeDirs(node, nodeMap))
+  }
+
+  // The "escapable" set: unassigned nodes with at least one valid dir
+  const escapable = new Set(
+    nodes.filter(n => escapeDirCache.get(n.id).length > 0).map(n => n.id)
+  )
+
   const newClusterSize = () => Math.floor(Math.random() * 10) + 1
-
   let continuousPieces = newClusterSize()
   let clusterCounter = 0
+  let lastAssignedNode = null
 
-  // Start with a random undefined node
-  let currentNodeId = pickRandom([...undefinedSet])
+  while (unassigned.size > 0) {
+    // Pick the next node to assign
+    let chosenId = null
 
-  while (undefinedSet.size > 0) {
-    const currentNode = nodeMap[currentNodeId]
+    if (lastAssignedNode && clusterCounter < continuousPieces) {
+      // Try to continue the cluster: pick an adjacent unassigned
+      // node that is currently escapable
+      const adjacentEscapable = ALL_DIRECTIONS
+        .map(d => lastAssignedNode.neighbors[d])
+        .filter(id => id !== null && unassigned.has(id) && escapable.has(id))
 
-    // Try all 6 directions in random order to find a valid arrow
-    const shuffledDirs = shuffle([...ALL_DIRECTIONS])
-    let assigned = false
-
-    for (const dir of shuffledDirs) {
-      if (canEscape(currentNode, dir, nodeMap)) {
-        // Valid direction found — assign it
-        currentNode.arrowDirection = dir
-        undefinedSet.delete(currentNodeId)
-        clusterCounter++
-        assigned = true
-        break
+      if (adjacentEscapable.length > 0) {
+        chosenId = pickRandom(adjacentEscapable)
       }
     }
 
-    if (!assigned) {
-      // No valid direction exists for this node right now.
-      // This can happen if the node is completely surrounded by defined nodes.
-      // Skip it for now and try another undefined node.
-      // We'll come back to it — as other nodes get removed during play,
-      // paths open up. But for generation, we need a fallback:
-      // try a different undefined node instead.
-      const remaining = [...undefinedSet].filter(id => id !== currentNodeId)
-      if (remaining.length === 0) {
-        // Only this node is left and it's stuck — force a direction
-        // toward the nearest edge. Pick any direction that has a null
-        // neighbor (i.e. is on the board edge).
-        const edgeDir = ALL_DIRECTIONS.find(d => currentNode.neighbors[d] === null)
-        if (edgeDir) {
-          currentNode.arrowDirection = edgeDir
-        } else {
-          // Fully interior and surrounded — just pick any direction
-          currentNode.arrowDirection = pickRandom(ALL_DIRECTIONS)
-        }
-        undefinedSet.delete(currentNodeId)
-        break
-      }
-      currentNodeId = pickRandom(remaining)
-      continue
-    }
-
-    // No more undefined nodes? We're done.
-    if (undefinedSet.size === 0) break
-
-    // Decide next node: continue cluster or start a new one
-    if (clusterCounter < continuousPieces) {
-      // Try to pick an adjacent undefined node to keep the cluster going
-      const adjacentUndefined = ALL_DIRECTIONS
-        .map(d => currentNode.neighbors[d])
-        .filter(id => id !== null && undefinedSet.has(id))
-
-      if (adjacentUndefined.length > 0) {
-        currentNodeId = pickRandom(adjacentUndefined)
-      } else {
-        // No adjacent undefined nodes — reset cluster, pick random
-        clusterCounter = 0
-        continuousPieces = newClusterSize()
-        currentNodeId = pickRandom([...undefinedSet])
-      }
-    } else {
-      // Cluster is full — reset and jump to a new random location
+    if (chosenId === null) {
+      // Start a new cluster — pick any escapable node at random
       clusterCounter = 0
       continuousPieces = newClusterSize()
-      currentNodeId = pickRandom([...undefinedSet])
+
+      if (escapable.size > 0) {
+        chosenId = pickRandom([...escapable])
+      } else {
+        // This shouldn't happen on a well-formed hex grid, but as a
+        // safety net: pick any remaining unassigned node and give it
+        // a direction toward the nearest edge.
+        chosenId = pickRandom([...unassigned])
+        const stuck = nodeMap[chosenId]
+        const edgeDir = ALL_DIRECTIONS.find(d => stuck.neighbors[d] === null)
+        stuck.arrowDirection = edgeDir || pickRandom(ALL_DIRECTIONS)
+        unassigned.delete(chosenId)
+        escapeDirCache.delete(chosenId)
+        escapable.delete(chosenId)
+        lastAssignedNode = stuck
+        clusterCounter++
+        continue
+      }
+    }
+
+    // Assign a random valid direction to the chosen node
+    const node = nodeMap[chosenId]
+    const validDirs = shuffle([...escapeDirCache.get(chosenId)])
+    node.arrowDirection = validDirs[0]
+
+    // Bookkeeping
+    unassigned.delete(chosenId)
+    escapeDirCache.delete(chosenId)
+    escapable.delete(chosenId)
+    lastAssignedNode = node
+    clusterCounter++
+
+    // Update neighbors: the newly assigned node may now block some
+    // of their escape paths. Recompute valid dirs for unassigned
+    // neighbors (and their line-of-sight nodes in each direction).
+    // For correctness we recompute any unassigned node that could
+    // have a path passing through the just-assigned node.
+    // The efficient approach: walk in each direction from the assigned
+    // node and update any unassigned node we encounter.
+    for (const dir of ALL_DIRECTIONS) {
+      const reverseDir = oppositeDir(dir)
+      // Walk in the reverse direction from the assigned node.
+      // Any unassigned node along this line had a path going through
+      // the assigned node in `dir` — that path is now blocked.
+      let walkId = node.neighbors[reverseDir]
+      while (walkId !== null && unassigned.has(walkId)) {
+        const walkNode = nodeMap[walkId]
+        const newDirs = getEscapeDirs(walkNode, nodeMap)
+        escapeDirCache.set(walkId, newDirs)
+        if (newDirs.length > 0) {
+          escapable.add(walkId)
+        } else {
+          escapable.delete(walkId)
+        }
+        walkId = walkNode.neighbors[reverseDir]
+      }
     }
   }
 
