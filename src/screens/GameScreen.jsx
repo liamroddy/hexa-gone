@@ -9,6 +9,12 @@ export default function GameScreen({ onBack }) {
   const [gameKey, setGameKey] = useState(0)
   const { nodes, nodeMap } = useMemo(() => generateSolvableBoard(2), [gameKey])
 
+  // Snapshot of initial arrow directions for retry
+  const initialArrows = useMemo(
+    () => new Map(nodes.map(n => [n.id, n.arrowDirection])),
+    [gameKey] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
   // Set of node IDs still active on the board
   const [activeIds, setActiveIds] = useState(
     () => new Set(nodes.map(n => n.id))
@@ -30,6 +36,16 @@ export default function GameScreen({ onBack }) {
   const handleNewGame = useCallback(() => {
     setGameKey(k => k + 1)
   }, [])
+
+  const handleRetry = useCallback(() => {
+    // Restore original arrow directions then reset active state
+    for (const node of nodes) {
+      node.arrowDirection = initialArrows.get(node.id)
+    }
+    setActiveIds(new Set(nodes.map(n => n.id)))
+    setAnimStates(new Map())
+    animating.current = false
+  }, [nodes, initialArrows])
 
   /** Animate a value from 0→1 over `duration` ms, calling `onFrame` each tick. */
   const animate = useCallback((duration, onFrame, onDone) => {
@@ -96,6 +112,7 @@ export default function GameScreen({ onBack }) {
       {isWon && (
         <div className="win-banner">
           <p className="win-message">Board cleared</p>
+          <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
           <button className="btn btn-new-game" onClick={handleNewGame}>New Game</button>
         </div>
       )}
@@ -107,6 +124,7 @@ export default function GameScreen({ onBack }) {
         activeIds={activeIds}
       />
       <p className="pieces-left">{activeIds.size} pieces remaining</p>
+      <button className="btn btn-retry" onClick={handleRetry}>Retry</button>
       <button className="btn btn-back" onClick={onBack}>Back</button>
     </div>
   )
