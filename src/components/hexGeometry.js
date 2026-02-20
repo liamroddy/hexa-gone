@@ -1,6 +1,5 @@
-import { HexDirection } from '../utils/hexUtils'
+import { HexDirection } from '../utils/hexDirections'
 
-/** Rotation angles for the arrow indicator per direction. */
 export const ARROW_ROTATION = {
   [HexDirection.North]:     0,
   [HexDirection.NorthEast]: 60,
@@ -10,11 +9,6 @@ export const ARROW_ROTATION = {
   [HexDirection.NorthWest]: 300,
 }
 
-/**
- * Build the SVG `points` string for a flat-top hexagon centered at the origin.
- * @param {number} size – hex radius in px
- * @returns {string} space-separated coordinate pairs
- */
 export function hexPoints(size) {
   return Array.from({ length: 6 }, (_, i) => {
     const angleRad = (Math.PI / 180) * (60 * i)
@@ -22,11 +16,6 @@ export function hexPoints(size) {
   }).join(' ')
 }
 
-/**
- * Build the SVG path `d` string for the directional arrow (pointing North before rotation).
- * @param {number} size – hex radius in px
- * @returns {string} SVG path data
- */
 export function arrowPath(size) {
   const hw = size * 0.05
   const hh = size * 0.18

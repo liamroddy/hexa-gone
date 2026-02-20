@@ -1,17 +1,6 @@
 import { ARROW_ROTATION, hexPoints, arrowPath } from './hexGeometry'
 import { computeAnimValues } from './hexAnimations'
 
-/**
- * Renders a single hexagon tile with animation support.
- *
- * Props:
- *  - node: { id, arrowDirection, neighbors, q, r }
- *  - x, y: pixel position (center of hex)
- *  - size: hex radius in px
- *  - onClick: optional click handler
- *  - animState: undefined | 'sliding' | 'blocked' | 'disappearing' | 'gone'
- *  - animProgress: 0..1 for animation interpolation
- */
 export default function HexNode({ node, x, y, size = 40, onClick, animState, animProgress = 0 }) {
   if (animState === 'gone') return null
 

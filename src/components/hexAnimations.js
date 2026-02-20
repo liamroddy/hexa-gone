@@ -1,6 +1,5 @@
-import { HexDirection } from '../utils/hexUtils'
+import { HexDirection } from '../utils/hexDirections'
 
-/** Unit-vector offsets per direction for slide animations. */
 const SLIDE_OFFSET = {
   [HexDirection.North]:     { dx:  0,     dy: -1   },
   [HexDirection.NorthEast]: { dx:  0.866, dy: -0.5 },
@@ -10,17 +9,6 @@ const SLIDE_OFFSET = {
   [HexDirection.NorthWest]: { dx: -0.866, dy: -0.5 },
 }
 
-/**
- * Compute visual properties driven by animation state.
- *
- * @param {object} params
- * @param {string} [params.animState]    – 'sliding' | 'blocked' | 'disappearing' | 'gone'
- * @param {number} [params.animProgress] – 0..1
- * @param {string} [params.direction]    – HexDirection value
- * @param {number} params.size           – hex radius in px
- * @param {string} [params.color]        – hex tile fill colour
- * @returns {{ translateX: number, translateY: number, scale: number, opacity: number, fillColor: string }}
- */
 export function computeAnimValues({ animState, animProgress = 0, direction, size, color }) {
   let translateX = 0
   let translateY = 0
