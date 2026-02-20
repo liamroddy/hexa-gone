@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import SplashScreen from './SplashScreen'
-import GameScreen from './GameScreen'
-import HowToPlayScreen from './HowToPlayScreen'
+import SplashScreen from './screens/SplashScreen'
+import GameScreen from './screens/GameScreen'
+import HowToPlayScreen from './screens/HowToPlayScreen'
 import './App.css'
 
 export default function App() {

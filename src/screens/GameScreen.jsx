@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import HexBoard from './HexBoard'
-import { buildHexGrid } from './hexUtils'
+import HexBoard from '../components/HexBoard'
+import { buildHexGrid } from '../utils/hexUtils'
 
 export default function GameScreen({ onBack }) {
   const { nodes } = useMemo(() => buildHexGrid(2), [])
