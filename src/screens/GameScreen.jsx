@@ -1,13 +1,13 @@
-import { useMemo, useState, useCallback, useRef } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import HexBoard from '../components/HexBoard'
 import { generateSolvableBoard, resolveSlide } from '../utils/hexUtils'
 
 const ANIM_DURATION_SLIDE = 500   // ms for escape slide
 const ANIM_DURATION_BLOCKED = 400 // ms for blocked bounce
-const ANIM_FPS = 60
 
 export default function GameScreen({ onBack }) {
-  const { nodes, nodeMap } = useMemo(() => generateSolvableBoard(2), [])
+  const [gameKey, setGameKey] = useState(0)
+  const { nodes, nodeMap } = useMemo(() => generateSolvableBoard(2), [gameKey])
 
   // Set of node IDs still active on the board
   const [activeIds, setActiveIds] = useState(
@@ -19,6 +19,17 @@ export default function GameScreen({ onBack }) {
 
   // Prevent clicks during animation
   const animating = useRef(false)
+
+  // Reset board state when a new game starts
+  useEffect(() => {
+    setActiveIds(new Set(nodes.map(n => n.id)))
+    setAnimStates(new Map())
+    animating.current = false
+  }, [gameKey])
+
+  const handleNewGame = useCallback(() => {
+    setGameKey(k => k + 1)
+  }, [])
 
   /** Animate a value from 0→1 over `duration` ms, calling `onFrame` each tick. */
   const animate = useCallback((duration, onFrame, onDone) => {
@@ -82,7 +93,12 @@ export default function GameScreen({ onBack }) {
 
   return (
     <div className="screen game-screen">
-      {isWon && <p className="win-message">Board cleared</p>}
+      {isWon && (
+        <div className="win-banner">
+          <p className="win-message">Board cleared</p>
+          <button className="btn btn-new-game" onClick={handleNewGame}>New Game</button>
+        </div>
+      )}
       <HexBoard
         nodes={nodes}
         hexSize={40}

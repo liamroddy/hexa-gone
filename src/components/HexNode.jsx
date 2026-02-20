@@ -20,6 +20,7 @@ export default function HexNode({ node, x, y, size = 40, onClick, animState, ani
     animProgress,
     direction: node.arrowDirection,
     size,
+    color: node.color,
   })
 
   const points = hexPoints(size)

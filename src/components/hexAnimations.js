@@ -18,13 +18,14 @@ const SLIDE_OFFSET = {
  * @param {number} [params.animProgress] – 0..1
  * @param {string} [params.direction]    – HexDirection value
  * @param {number} params.size           – hex radius in px
+ * @param {string} [params.color]        – hex tile fill colour
  * @returns {{ translateX: number, translateY: number, scale: number, opacity: number, fillColor: string }}
  */
-export function computeAnimValues({ animState, animProgress = 0, direction, size }) {
+export function computeAnimValues({ animState, animProgress = 0, direction, size, color }) {
   let translateX = 0
   let translateY = 0
   let scale = 1
-  let fillColor = 'var(--colour-hex-fill, #1a1a2e)'
+  let fillColor = color || 'var(--colour-hex-fill, #1a1a2e)'
   let opacity = 1
 
   const offset = SLIDE_OFFSET[direction] || { dx: 0, dy: 0 }

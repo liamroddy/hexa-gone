@@ -11,6 +11,20 @@ export const HexDirection = Object.freeze({
 /** All direction values as an array for convenience. */
 export const ALL_DIRECTIONS = Object.values(HexDirection)
 
+/** Colour palette for hex tiles. */
+export const HEX_COLOURS = [
+  '#ff2d2d', // hot red
+  '#ff7700', // blaze orange
+  '#00b894', // jungle green
+  '#f9c200', // sunflower yellow
+  '#0077ff', // electric blue
+  '#00d4ff', // laser cyan
+  '#a020f0', // deep purple
+  '#ff1493', // neon pink
+  '#39ff14', // acid green
+  '#ff6600', // fire amber
+]
+
 /** Returns the opposite direction. */
 export function oppositeDir(dir) {
   const map = {
@@ -106,6 +120,7 @@ export function buildGridStructure(radius = 2) {
       const node = createHexNode(id)
       node.q = q
       node.r = r
+      node.color = HEX_COLOURS[Math.floor(Math.random() * HEX_COLOURS.length)]
       nodes.push(node)
       coordMap.set(id, node)
     }
