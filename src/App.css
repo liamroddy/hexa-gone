@@ -33,12 +33,6 @@
   text-shadow: 0 0 30px var(--colour-highlight-glow);
 }
 
-.game-subtitle {
-  font-size: 1.25rem;
-  opacity: 0.7;
-  margin-bottom: 1rem;
-}
-
 .button-group {
   display: flex;
   flex-direction: column;

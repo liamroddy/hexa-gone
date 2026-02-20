@@ -10,8 +10,8 @@ import HexNode from './HexNode'
  *  - animStates: Map of nodeId -> { state, progress }
  *  - activeIds: Set of node IDs still on the board
  */
-export default function HexBoard({ nodes, hexSize = 40, onHexClick, animStates = new Map(), activeIds }) {
-  const gap = 4
+export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates = new Map(), activeIds }) {
+  const gap = 12
 
   // Flat-top hex: width = 2*size, height = sqrt(3)*size
   const w = hexSize * 2 + gap

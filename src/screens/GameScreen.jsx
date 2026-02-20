@@ -101,7 +101,7 @@ export default function GameScreen({ onBack }) {
       )}
       <HexBoard
         nodes={nodes}
-        hexSize={40}
+        hexSize={30}
         onHexClick={handleHexClick}
         animStates={animStates}
         activeIds={activeIds}
