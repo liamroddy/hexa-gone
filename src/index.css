@@ -1,0 +1,25 @@
+:root {
+  --colour-highlight: #fffbed;
+  --colour-highlight-glow: rgba(248, 196, 6, 0.4);
+  --colour-bg-deep: #0d3a27;
+  --colour-bg-dark: #0a1c24;
+  --colour-text: #ffffff;
+  --colour-border-subtle: rgba(255, 255, 255, 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
