@@ -7,8 +7,10 @@ import HexNode from './HexNode'
  *  - nodes: array of hex node objects (with q, r coords)
  *  - hexSize: radius of each hex in px
  *  - onHexClick: optional (node) => void
+ *  - animStates: Map of nodeId -> { state, progress }
+ *  - activeIds: Set of node IDs still on the board
  */
-export default function HexBoard({ nodes, hexSize = 40, onHexClick }) {
+export default function HexBoard({ nodes, hexSize = 40, onHexClick, animStates = new Map(), activeIds }) {
   const gap = 4
 
   // Flat-top hex: width = 2*size, height = sqrt(3)*size
@@ -42,16 +44,23 @@ export default function HexBoard({ nodes, hexSize = 40, onHexClick }) {
       role="img"
       aria-label="Hexagon game board"
     >
-      {positioned.map(({ node, x, y }) => (
-        <HexNode
-          key={node.id}
-          node={node}
-          x={x}
-          y={y}
-          size={hexSize}
-          onClick={onHexClick}
-        />
-      ))}
+      {positioned.map(({ node, x, y }) => {
+        const anim = animStates.get(node.id)
+        // Skip nodes that have been removed and aren't animating
+        if (activeIds && !activeIds.has(node.id) && !anim) return null
+        return (
+          <HexNode
+            key={node.id}
+            node={node}
+            x={x}
+            y={y}
+            size={hexSize}
+            onClick={onHexClick}
+            animState={anim?.state}
+            animProgress={anim?.progress}
+          />
+        )
+      })}
     </svg>
   )
 }
