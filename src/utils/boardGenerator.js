@@ -3,74 +3,136 @@ import { buildGridStructure } from './hexGraph'
 import { pickRandom } from './helpers'
 import { DIRECTION_COLOUR } from '../theme'
 
+/** Number of direction changers to place per board */
+export const DIRECTION_CHANGER_COUNT = 3
+
+/** Minimum hops before hitting a changer for it to count as "interesting" */
+const MIN_HOPS_TO_CHANGER = 2
+
 /**
  * Generates a board that is 100% guaranteed solvable — no cycles, ever.
  *
  * Strategy: "peel from the outside in"
  *
- * We figure out a valid solve order first, then assign arrows to match.
- *
- * A node is "peelable" if it has at least one direction where the path
- * to the board edge doesn't pass through any other remaining node.
- * Boundary nodes are always peelable (they can point off the edge).
- *
- * We repeatedly peel a random peelable node from the remaining set,
- * recording which direction it can escape. This is exactly what the
- * player will do during gameplay. After peeling all nodes, we have a
- * guaranteed valid solve order with escape directions.
- *
- * This always terminates because on a hex grid, the outermost layer
- * of remaining nodes always has peelable nodes — they sit on the
- * convex hull of the remaining set and have clear paths to the edge.
- *
- * For interesting gameplay, we add variety by shuffling which peelable
- * node we pick and randomizing among its valid escape directions.
+ * Direction changers are placed only on interior (landlocked) hexes.
+ * After solving, we verify at least one node's escape path actually
+ * routes through a direction changer (with ≥ MIN_HOPS_TO_CHANGER hops
+ * before reaching it) so changers are meaningful gameplay elements.
+ * If not, we retry with a fresh layout.
  */
-export function generateSolvableBoard(radius = 2) {
+export function generateSolvableBoard(radius = 2, changerCount = DIRECTION_CHANGER_COUNT) {
   const { nodes, nodeMap } = buildGridStructure(radius)
 
-  const remaining = new Set(nodes.map(n => n.id))
-  const solveOrder = [] // [{id, dir}] — the order nodes are removed
+  // Interior hexes: those with a neighbor in every direction (not on the edge)
+  const interiorIds = nodes
+    .filter(n => ALL_DIRECTIONS.every(d => n.neighbors[d] !== null))
+    .map(n => n.id)
 
-  while (remaining.size > 0) {
-    // Find all peelable nodes: those with at least one escape direction
-    // that doesn't pass through any other remaining node
-    const peelable = []
-    for (const id of remaining) {
-      const dirs = getEscapeDirs(id, remaining, nodeMap)
-      if (dirs.length > 0) {
-        peelable.push({ id, dirs })
+  const actualCount = Math.min(changerCount, interiorIds.length)
+
+  // Retry loop — keep trying until solvable AND at least one changer is used
+  for (let attempt = 0; ; attempt++) {
+    const changerMap = {}
+    const shuffled = [...interiorIds].sort(() => Math.random() - 0.5)
+    const changerPositions = new Set(shuffled.slice(0, actualCount))
+    for (const id of changerPositions) {
+      changerMap[id] = pickRandom(ALL_DIRECTIONS)
+    }
+
+    const playableNodes = nodes.filter(n => !changerPositions.has(n.id))
+    const remaining = new Set(playableNodes.map(n => n.id))
+    const solveOrder = [] // [{id, dir, snapshot}] — snapshot = remaining set at peel time
+    let stuck = false
+
+    while (remaining.size > 0) {
+      const peelable = []
+      for (const id of remaining) {
+        const dirs = getEscapeDirs(id, remaining, nodeMap, changerMap)
+        if (dirs.length > 0) {
+          peelable.push({ id, dirs })
+        }
+      }
+
+      if (peelable.length === 0) {
+        stuck = true
+        break
+      }
+
+      const chosen = pickRandom(peelable)
+      const dir = pickRandom(chosen.dirs)
+      // Snapshot the remaining set so we can retrace the path later
+      solveOrder.push({ id: chosen.id, dir, remainingSnapshot: new Set(remaining) })
+      remaining.delete(chosen.id)
+    }
+
+    if (stuck) continue
+
+    // Check: does at least one node's escape path pass through a changer
+    // with enough distance to be interesting?
+    let anyChangerUsed = false
+    for (const { id, dir, remainingSnapshot } of solveOrder) {
+      const hopsBeforeChanger = traceHopsToChanger(id, dir, remainingSnapshot, nodeMap, changerMap)
+      if (hopsBeforeChanger >= MIN_HOPS_TO_CHANGER) {
+        anyChangerUsed = true
+        break
       }
     }
 
-    // Pick a random peelable node and a random valid direction
-    const chosen = pickRandom(peelable)
-    const dir = pickRandom(chosen.dirs)
+    if (!anyChangerUsed) continue // retry — changers aren't being used
 
-    solveOrder.push({ id: chosen.id, dir })
-    remaining.delete(chosen.id)
+    // Assign arrows and colours based on the solve order
+    for (const { id, dir } of solveOrder) {
+      nodeMap[id].arrowDirection = dir
+      nodeMap[id].color = DIRECTION_COLOUR[dir]
+    }
+
+    return { nodes, nodeMap, changerMap, playableNodes }
   }
+}
 
-  // Assign arrows and colours based on the solve order
-  for (const { id, dir } of solveOrder) {
-    nodeMap[id].arrowDirection = dir
-    nodeMap[id].color = DIRECTION_COLOUR[dir]
+/**
+ * Trace a node's escape path and return the number of hops before
+ * it first hits a direction changer. Returns -1 if the path never
+ * crosses a changer.
+ */
+function traceHopsToChanger(nodeId, dir, remaining, nodeMap, changerMap) {
+  const node = nodeMap[nodeId]
+  let currentDir = dir
+  let currentId = node.neighbors[currentDir]
+  let hops = 0
+
+  while (currentId !== null) {
+    if (remaining.has(currentId) && currentId !== nodeId) return -1
+    hops++
+    if (changerMap[currentId] && changerMap[currentId] !== currentDir) {
+      return hops // how many hops before hitting this changer
+    }
+    currentId = nodeMap[currentId].neighbors[currentDir]
   }
-
-  return { nodes, nodeMap }
+  return -1 // never hit a changer
 }
 
 /**
  * Returns directions where a node can slide to the board edge
  * without passing through any other node in the `remaining` set.
+ * Simulates direction changers: if the path crosses a changer
+ * on an empty space, the direction redirects accordingly.
  */
-function getEscapeDirs(nodeId, remaining, nodeMap) {
+function getEscapeDirs(nodeId, remaining, nodeMap, changerMap) {
   const node = nodeMap[nodeId]
   return ALL_DIRECTIONS.filter(dir => {
-    let currentId = node.neighbors[dir]
+    let currentDir = dir
+    let currentId = node.neighbors[currentDir]
+    const visited = new Set() // cycle guard for changers
     while (currentId !== null) {
       if (remaining.has(currentId)) return false
-      currentId = nodeMap[currentId].neighbors[dir]
+      // If this empty space has a direction changer, redirect
+      if (changerMap[currentId] && changerMap[currentId] !== currentDir) {
+        if (visited.has(currentId)) return false // changer loop
+        visited.add(currentId)
+        currentDir = changerMap[currentId]
+      }
+      currentId = nodeMap[currentId].neighbors[currentDir]
     }
     return true
   })

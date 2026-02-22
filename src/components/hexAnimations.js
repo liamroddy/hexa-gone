@@ -92,8 +92,9 @@ export function computeRollValues({
   size,
   color,
 }) {
-  const vec = DIR_VEC[direction] || { dx: 0, dy: 0 }
-  const dirAngle = DIR_ANGLE[direction] || 0
+  // Use currentDir from animData if available (direction changers redirect mid-slide)
+  const activeDir = animData.currentDir || direction
+  const dirAngle = DIR_ANGLE[activeDir] || DIR_ANGLE[direction] || 0
 
   let translateX = 0
   let translateY = 0
@@ -141,8 +142,8 @@ export function computeRollValues({
   } else if (animState === 'hit') {
     // Stationary at the collision point, flash white
     const { hitAtHops = 0 } = animData
-    translateX = stepX * hitAtHops
-    translateY = stepY * hitAtHops
+    translateX = (baseOffsetX || 0) + stepX * hitAtHops
+    translateY = (baseOffsetY || 0) + stepY * hitAtHops
     // Flash: lerp to white and back
     const flash = animData.flashT || 0
     if (flash > 0) {

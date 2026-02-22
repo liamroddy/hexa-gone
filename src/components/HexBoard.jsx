@@ -1,7 +1,7 @@
 import HexNode from './HexNode'
-import { hexPoints } from './hexGeometry'
+import { hexPoints, changerChevronPath, ARROW_ROTATION } from './hexGeometry'
 
-export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates = new Map(), activeIds }) {
+export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates = new Map(), activeIds, changerMap = {} }) {
   const DEPTH_FACTOR = 0.28
 
   const gapX = 12
@@ -34,6 +34,9 @@ export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates =
   const maxY = Math.max(...ys) + pad
 
   const bgPoints = hexPoints(bgSize)
+  const changerSize = hexSize * 0.85
+  const changerPoints = hexPoints(changerSize)
+  const chevron = changerChevronPath(changerSize)
 
   // viewBox fits the board snugly so the grid scales to fill width on
   // narrow screens. overflow:visible lets animated hexes render outside
@@ -59,6 +62,36 @@ export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates =
             strokeWidth="1.5"
           />
         ))}
+      </g>
+
+      {/* Direction changers — flat on the board beneath nodes */}
+      <g aria-hidden="true">
+        {positioned.map(({ node, x, y }) => {
+          const changerDir = changerMap[node.id]
+          if (!changerDir) return null
+          const rot = ARROW_ROTATION[changerDir] ?? 0
+          return (
+            <g key={`changer-${node.id}`} transform={`translate(${x},${y})`}>
+              <polygon
+                points={changerPoints}
+                fill="#3a3a4a"
+                stroke="#555"
+                strokeWidth="1"
+              />
+              <g transform={`rotate(${rot})`}>
+                <path
+                  d={chevron}
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.85"
+                />
+              </g>
+            </g>
+          )
+        })}
       </g>
 
       {positioned.map(({ node, x, y }) => {

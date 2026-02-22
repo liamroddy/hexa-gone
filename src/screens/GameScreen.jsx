@@ -4,7 +4,7 @@ import { useGameState } from '../hooks/useGameState'
 export default function GameScreen({ onBack }) {
   const {
     nodes, activeIds, animStates, isWon, piecesRemaining,
-    handleHexClick, newGame, retry,
+    handleHexClick, newGame, retry, changerMap,
   } = useGameState(2)
 
   return (
@@ -18,6 +18,7 @@ export default function GameScreen({ onBack }) {
             onHexClick={handleHexClick}
             animStates={animStates}
             activeIds={activeIds}
+            changerMap={changerMap}
           />
         </div>
       </div>

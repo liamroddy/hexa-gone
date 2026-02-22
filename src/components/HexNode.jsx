@@ -21,7 +21,10 @@ export default function HexNode({ node, x, y, size = 40, onClick, animState, ani
   const { top, bottom, left, right, depth } = extrudedHex(size)
   const palette = facePalette(fillColor)
   const arrow = arrowPath(size)
-  const rotation = ARROW_ROTATION[node.arrowDirection] ?? 0
+  // During animation, use the current travel direction for arrow rotation
+  // (direction changers redirect mid-slide), but keep the node's original colour
+  const activeDir = animData?.currentDir || node.arrowDirection
+  const rotation = ARROW_ROTATION[activeDir] ?? 0
 
   // Build the transform: translate to board position + anim offset,
   // then apply the rolling tilt (rotate into travel dir, squash Y, rotate back)

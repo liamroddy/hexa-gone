@@ -83,3 +83,20 @@ export function arrowPath(size) {
     `Z`,
   ].join(' ')
 }
+
+/* ── Triple-chevron ">>>" path for direction changers ───────────── *
+ * Three stacked chevrons pointing upward (rotated per direction).    */
+export function changerChevronPath(size) {
+  const s = size * 0.28
+  const gap = size * 0.28
+  const chevrons = []
+  for (let i = 0; i < 3; i++) {
+    const cy = gap * (i - 1) // center each chevron vertically
+    chevrons.push(
+      `M ${-s * 0.5},${cy + s * 0.4}`,
+      `L 0,${cy - s * 0.4}`,
+      `L ${s * 0.5},${cy + s * 0.4}`,
+    )
+  }
+  return chevrons.join(' ')
+}
