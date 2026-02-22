@@ -2,6 +2,8 @@ import HexNode from './HexNode'
 import { hexPoints } from './hexGeometry'
 
 export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates = new Map(), activeIds }) {
+  const DEPTH_FACTOR = 0.28
+
   const gapX = 12
   // Vertical gap scaled by sqrt(3)/2 so top/bottom gaps visually match side gaps
   const gapY = gapX * (Math.sqrt(3) / 2)
@@ -24,9 +26,10 @@ export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates =
 
   const xs = positioned.map(p => p.x)
   const ys = positioned.map(p => p.y)
+  const depth = hexSize * DEPTH_FACTOR
   const pad = hexSize + 10
   const minX = Math.min(...xs) - pad
-  const minY = Math.min(...ys) - pad
+  const minY = Math.min(...ys) - pad - depth
   const maxX = Math.max(...xs) + pad
   const maxY = Math.max(...ys) + pad
 
