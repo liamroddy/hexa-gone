@@ -60,9 +60,9 @@ export default function HexNode({ node, x, y, size = 40, onClick, animState, ani
               strokeWidth="2"
             />
 
-            {/* Arrow on bottom face (mirrored vertically to show it's the underside) */}
+            {/* Arrow on bottom face (same direction as top) */}
             {node.arrowDirection && (
-              <g transform={`translate(0,${-depth}) rotate(${rotation}) scale(1,-1)`}>
+              <g transform={`translate(0,${-depth}) rotate(${rotation})`}>
                 <path
                   d={arrow}
                   fill="var(--colour-highlight, #00e0ff)"
