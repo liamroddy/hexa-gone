@@ -1,12 +1,11 @@
-export const HEX_COLOURS = [
-  '#ff2d2d', // hot red
-  '#ff7700', // blaze orange
-  '#00b894', // jungle green
-  '#f9c200', // sunflower yellow
-  '#0077ff', // electric blue
-  '#00d4ff', // laser cyan
-  '#a020f0', // deep purple
-  '#ff1493', // neon pink
-  '#39ff14', // acid green
-  '#ff6600', // fire amber
-]
+export const DIRECTION_COLOUR = {
+  N:  '#ff2d2d', // hot red
+  NE: '#ff7700', // blaze orange
+  SE: '#00b894', // jungle green
+  S:  '#f9c200', // sunflower yellow
+  SW: '#0077ff', // electric blue
+  NW: '#a020f0', // deep purple
+}
+
+// Derived for any code that still references HEX_COLOURS
+export const HEX_COLOURS = Object.values(DIRECTION_COLOUR)

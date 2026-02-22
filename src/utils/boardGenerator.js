@@ -1,7 +1,7 @@
 import { ALL_DIRECTIONS } from './hexDirections'
 import { buildGridStructure } from './hexGraph'
 import { pickRandom, shuffle } from './helpers'
-import { HEX_COLOURS } from '../theme'
+import { DIRECTION_COLOUR } from '../theme'
 
 /**
  * Generates a board that is 100% guaranteed solvable — no cycles, ever.
@@ -29,10 +29,6 @@ import { HEX_COLOURS } from '../theme'
 export function generateSolvableBoard(radius = 2) {
   const { nodes, nodeMap } = buildGridStructure(radius)
 
-  for (const node of nodes) {
-    node.color = pickRandom(HEX_COLOURS)
-  }
-
   const remaining = new Set(nodes.map(n => n.id))
   const solveOrder = [] // [{id, dir}] — the order nodes are removed
 
@@ -55,9 +51,10 @@ export function generateSolvableBoard(radius = 2) {
     remaining.delete(chosen.id)
   }
 
-  // Assign arrows based on the solve order
+  // Assign arrows and colours based on the solve order
   for (const { id, dir } of solveOrder) {
     nodeMap[id].arrowDirection = dir
+    nodeMap[id].color = DIRECTION_COLOUR[dir]
   }
 
   return { nodes, nodeMap }
