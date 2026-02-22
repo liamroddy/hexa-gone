@@ -73,7 +73,7 @@ export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates =
             size={hexSize}
             onClick={onHexClick}
             animState={anim?.state}
-            animProgress={anim?.progress}
+            animData={anim?.data}
           />
         )
       })}

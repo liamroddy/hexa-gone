@@ -1,6 +1,7 @@
 import { HexDirection } from '../utils/hexDirections'
 
-const SLIDE_OFFSET = {
+/* ── Direction unit vectors ──────────────────────────────────────── */
+const DIR_VEC = {
   [HexDirection.North]:     { dx:  0,     dy: -1   },
   [HexDirection.NorthEast]: { dx:  0.866, dy: -0.5 },
   [HexDirection.SouthEast]: { dx:  0.866, dy:  0.5 },
@@ -9,33 +10,146 @@ const SLIDE_OFFSET = {
   [HexDirection.NorthWest]: { dx: -0.866, dy: -0.5 },
 }
 
-export function computeAnimValues({ animState, animProgress = 0, direction, size, color }) {
+/* ── Rolling rotation axis per direction ─────────────────────────
+ * The hex rolls "forward" in its travel direction. The rotation axis
+ * is perpendicular to the travel vector (in the SVG plane).
+ * For SVG we fake 3D with a scaleY squeeze + vertical shift.
+ * `rollAngle` is the signed angle the direction makes with the +X axis,
+ * used to orient the perspective tilt.                                */
+const DIR_ANGLE = {
+  [HexDirection.North]:     -90,
+  [HexDirection.NorthEast]: -30,
+  [HexDirection.SouthEast]:  30,
+  [HexDirection.South]:      90,
+  [HexDirection.SouthWest]:  150,
+  [HexDirection.NorthWest]:  210,
+}
+
+/* ── Easing helpers ──────────────────────────────────────────────── */
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+
+function easeOutQuad(t) {
+  return 1 - (1 - t) * (1 - t)
+}
+
+/* ── Single-hop roll curve ───────────────────────────────────────
+ * t goes 0→1 for one hop.
+ * Returns { hopT, tiltY, showBottom }
+ *   hopT      – eased 0→1 positional progress across the hop
+ *   tiltY     – scaleY factor (1 = flat top, 0 = edge-on, -1 = bottom face)
+ *   showBottom – true when we should render the bottom face (arrow mirrored)
+ *
+ * The roll profile:
+ *   0.0–0.4  top face tilts forward  (scaleY 1 → 0)
+ *   0.4–0.6  edge-on, then bottom face appears (scaleY 0 → -0.6 → 0)
+ *   0.6–1.0  bottom face settles flat (scaleY 0 → 1)  — but it's the
+ *            "bottom" face so we flip the arrow.
+ *
+ * Actually simpler: we do a continuous rotation mapped to scaleY.
+ * Phase 0→0.5: top face rotating away (scaleY 1→-1)
+ * Phase 0.5→1: bottom face rotating in (scaleY -1→1)
+ * We show "bottom" when scaleY < 0.                                  */
+
+function rollProfile(t) {
+  // Map t to a rotation angle 0 → π (half turn)
+  const angle = t * Math.PI
+  const cosA = Math.cos(angle)
+
+  // scaleY simulates the 3D tilt: 1 at start, 0 at edge-on, -1 at bottom
+  const tiltY = cosA
+  const showBottom = cosA < 0
+
+  // Positional progress uses eased t
+  const hopT = easeInOutCubic(t)
+
+  return { hopT, tiltY, showBottom }
+}
+
+/* ── Main animation value computer ───────────────────────────────
+ *
+ * animState is one of:
+ *   'rolling'     – normal roll (escape or blocked-forward phase)
+ *   'falling'     – rolling off the edge, fading out
+ *   'hit'         – flash white on collision
+ *   'returning'   – rolling back to start after collision
+ *   'gone'        – removed from board
+ *
+ * animProgress: 0→1 within the current phase
+ *
+ * Extra data in animData:
+ *   totalHops     – how many hex spaces to roll
+ *   currentHop    – which hop we're on (0-indexed)
+ *   hopProgress   – 0→1 within the current hop
+ *   stepPixelX/Y  – pixel distance of one hop in the travel direction
+ *   returning     – true if rolling back after collision
+ */
+export function computeRollValues({
+  animState,
+  animData = {},
+  direction,
+  size,
+  color,
+}) {
+  const vec = DIR_VEC[direction] || { dx: 0, dy: 0 }
+  const dirAngle = DIR_ANGLE[direction] || 0
+
   let translateX = 0
   let translateY = 0
-  let scale = 1
-  let fillColor = color || 'var(--colour-hex-fill, #1a1a2e)'
+  let scaleX = 1
+  let scaleY = 1
   let opacity = 1
+  let fillColor = color || 'var(--colour-hex-fill, #1a1a2e)'
+  let showBottom = false
+  let rotateZ = 0 // extra rotation for the whole group
 
-  const offset = SLIDE_OFFSET[direction] || { dx: 0, dy: 0 }
+  const {
+    totalHops = 1,
+    currentHop = 0,
+    hopProgress = 0,
+    stepX = 0,
+    stepY = 0,
+  } = animData
 
-  if (animState === 'sliding') {
-    const slideDistance = size * 6
-    translateX = offset.dx * slideDistance * animProgress
-    translateY = offset.dy * slideDistance * animProgress
-    scale = 1 - animProgress * 0.6
-    opacity = 1 - animProgress
-  } else if (animState === 'blocked') {
-    const bounceDistance = size * 1.5
-    const t = animProgress < 0.5
-      ? animProgress * 2
-      : (1 - animProgress) * 2
-    translateX = offset.dx * bounceDistance * t
-    translateY = offset.dy * bounceDistance * t
-    fillColor = `rgba(255, 60, 60, ${0.8 * (1 - animProgress)})`
-  } else if (animState === 'disappearing') {
-    scale = 1 - animProgress
-    opacity = 1 - animProgress
+  const baseOffsetX = animData.baseOffsetX || 0
+  const baseOffsetY = animData.baseOffsetY || 0
+
+  if (animState === 'rolling' || animState === 'falling' || animState === 'returning') {
+    const { hopT, tiltY, showBottom: sb } = rollProfile(hopProgress)
+
+    // How many full hops completed + fractional current hop
+    const completedHops = currentHop + hopT
+    translateX = baseOffsetX + stepX * completedHops
+    translateY = baseOffsetY + stepY * completedHops
+
+    // The tilt: we scale Y relative to the travel direction.
+    // We rotate the group to align with travel, apply scaleY, then rotate back.
+    // But for SVG simplicity, we use a perspective-like scaleY on the hex body.
+    scaleY = Math.abs(tiltY) * 0.6 + 0.4 // never fully flat, range 0.4–1.0
+    showBottom = sb
+
+    if (animState === 'falling') {
+      // After rolling off the last board hex, continue rolling while fading
+      const fadeStart = 0.0
+      const fadeT = Math.max(0, (hopProgress - fadeStart) / (1 - fadeStart))
+      opacity = 1 - easeOutQuad(fadeT)
+      const shrink = 1 - fadeT * 0.5
+      scaleX *= shrink
+      scaleY *= shrink
+    }
+  } else if (animState === 'hit') {
+    // Stationary at the collision point, flash white
+    const { hitAtHops = 0 } = animData
+    translateX = stepX * hitAtHops
+    translateY = stepY * hitAtHops
+    // Flash: lerp to white and back
+    const flash = animData.flashT || 0
+    if (flash > 0) {
+      const intensity = Math.round(255 * flash)
+      fillColor = `rgb(${intensity},${intensity},${intensity})`
+    }
   }
 
-  return { translateX, translateY, scale, opacity, fillColor }
+  return { translateX, translateY, scaleX, scaleY, opacity, fillColor, showBottom, rotateZ, dirAngle }
 }
