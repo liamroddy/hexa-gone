@@ -35,10 +35,14 @@ export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates =
 
   const bgPoints = hexPoints(bgSize)
 
+  // viewBox fits the board snugly so the grid scales to fill width on
+  // narrow screens. overflow:visible lets animated hexes render outside
+  // the viewBox — the outer container clips instead.
   return (
     <svg
       viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
-      style={{ width: '100%', maxWidth: 600, height: 'auto' }}
+      preserveAspectRatio="xMidYMid meet"
+      style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
       role="img"
       aria-label="Hexagon game board"
     >
