@@ -1,6 +1,6 @@
 import { ALL_DIRECTIONS } from './hexDirections'
 import { buildGridStructure } from './hexGraph'
-import { pickRandom, shuffle } from './helpers'
+import { pickRandom } from './helpers'
 import { DIRECTION_COLOUR } from '../theme'
 
 /**
