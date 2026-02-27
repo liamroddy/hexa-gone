@@ -20,12 +20,14 @@ export function useGameState(radius = 2) {
 
   const [activeIds, setActiveIds] = useState(() => new Set(playableNodes.map(n => n.id)))
   const [animStates, setAnimStates] = useState(new Map())
-  const animating = useRef(false)
+  const animatingIds = useRef(new Set())
+  const [animCount, setAnimCount] = useState(0)
 
   useEffect(() => {
     setActiveIds(new Set(playableNodes.map(n => n.id)))
     setAnimStates(new Map())
-    animating.current = false
+    animatingIds.current = new Set()
+    setAnimCount(0)
   }, [playableNodes])
 
   const newGame = useCallback(() => setGameKey(k => k + 1), [])
@@ -36,7 +38,8 @@ export function useGameState(radius = 2) {
     }
     setActiveIds(new Set(playableNodes.map(n => n.id)))
     setAnimStates(new Map())
-    animating.current = false
+    animatingIds.current = new Set()
+    setAnimCount(0)
   }, [playableNodes, initialArrows])
 
   /* ── Helper: animate a sequence of hops ────────────────────────── */
@@ -82,14 +85,46 @@ export function useGameState(radius = 2) {
     doSegment()
   }, [])
 
+  /* ── Helper: set anim state for a single node (merge into map) ── */
+  const setNodeAnim = useCallback((nodeId, value) => {
+    setAnimStates(prev => {
+      const next = new Map(prev)
+      if (value === null) {
+        next.delete(nodeId)
+      } else {
+        next.set(nodeId, value)
+      }
+      return next
+    })
+  }, [])
+
+  /* ── Helper: clear anim state for a single node ────────────────── */
+  const clearNodeAnim = useCallback((nodeId) => {
+    setNodeAnim(nodeId, null)
+    animatingIds.current.delete(nodeId)
+    setAnimCount(animatingIds.current.size)
+  }, [setNodeAnim])
+
   const handleHexClick = useCallback((node) => {
-    if (animating.current) return
+    if (animatingIds.current.has(node.id)) return
     if (!activeIds.has(node.id)) return
 
     const result = resolveSlide(node, nodeMap, activeIds, changerMap)
     if (!result) return
 
-    animating.current = true
+    animatingIds.current.add(node.id)
+    setAnimCount(animatingIds.current.size)
+
+    // If the node escapes, remove it from activeIds immediately so other
+    // nodes can path through its space before the animation finishes.
+    if (result.result === 'escape') {
+      setActiveIds(prev => {
+        const next = new Set(prev)
+        next.delete(node.id)
+        return next
+      })
+    }
+
     const { path, segments } = result
 
     // Track cumulative pixel offset across segments
@@ -119,7 +154,7 @@ export function useGameState(radius = 2) {
 
       const doFall = () => {
         animateValue(FALL_DURATION, (t) => {
-          setAnimStates(new Map([[node.id, {
+          setNodeAnim(node.id, {
             state: 'falling',
             data: {
               totalHops: totalHops + 1,
@@ -131,15 +166,11 @@ export function useGameState(radius = 2) {
               baseOffsetY: cumulativeY,
               currentDir: fallDir,
             },
-          }]]))
-        }, () => {
-          setActiveIds(prev => {
-            const next = new Set(prev)
-            next.delete(node.id)
-            return next
           })
-          setAnimStates(new Map([[node.id, { state: 'gone', data: {} }]]))
-          animating.current = false
+        }, () => {
+          setNodeAnim(node.id, { state: 'gone', data: {} })
+          animatingIds.current.delete(node.id)
+          setAnimCount(animatingIds.current.size)
         })
       }
 
@@ -151,7 +182,7 @@ export function useGameState(radius = 2) {
         animateSegments(node.id, segments, nodeMap, HOP_DURATION,
           (globalHop, t, segStep, dir) => {
             const ho = hopOffsets[globalHop]
-            setAnimStates(new Map([[node.id, {
+            setNodeAnim(node.id, {
               state: 'rolling',
               data: {
                 totalHops,
@@ -163,7 +194,7 @@ export function useGameState(radius = 2) {
                 baseOffsetY: ho.y,
                 currentDir: dir,
               },
-            }]]))
+            })
           },
           doFall
         )
@@ -175,13 +206,12 @@ export function useGameState(radius = 2) {
         // Immediately adjacent — just flash and stay
         animateValue(HIT_FLASH_DUR, (t) => {
           const flashT = t < 0.5 ? t * 2 : (1 - t) * 2
-          setAnimStates(new Map([[node.id, {
+          setNodeAnim(node.id, {
             state: 'hit',
             data: { hitAtHops: 0, flashT, stepX: stepPixel.x, stepY: stepPixel.y },
-          }]]))
+          })
         }, () => {
-          setAnimStates(new Map())
-          animating.current = false
+          clearNodeAnim(node.id)
         })
         return
       }
@@ -190,7 +220,7 @@ export function useGameState(radius = 2) {
       animateSegments(node.id, segments, nodeMap, HOP_DURATION,
         (globalHop, t, segStep, dir) => {
           const ho = hopOffsets[globalHop]
-          setAnimStates(new Map([[node.id, {
+          setNodeAnim(node.id, {
             state: 'rolling',
             data: {
               totalHops: forwardHops,
@@ -202,13 +232,13 @@ export function useGameState(radius = 2) {
               baseOffsetY: ho.y,
               currentDir: dir,
             },
-          }]]))
+          })
         },
         () => {
           // Phase 2: flash white at the collision point
           animateValue(HIT_FLASH_DUR, (t) => {
             const flashT = t < 0.5 ? t * 2 : (1 - t) * 2
-            setAnimStates(new Map([[node.id, {
+            setNodeAnim(node.id, {
               state: 'hit',
               data: {
                 hitAtHops: 0,
@@ -218,15 +248,14 @@ export function useGameState(radius = 2) {
                 baseOffsetX: cumulativeX,
                 baseOffsetY: cumulativeY,
               },
-            }]]))
+            })
           }, () => {
             // Phase 3: roll back to start (reverse through hop offsets)
             const reversedHops = [...hopOffsets].reverse()
             let returnHop = 0
             const doReturnHop = () => {
               if (returnHop >= reversedHops.length) {
-                setAnimStates(new Map())
-                animating.current = false
+                clearNodeAnim(node.id)
                 return
               }
               const rh = reversedHops[returnHop]
@@ -237,7 +266,7 @@ export function useGameState(radius = 2) {
                 // Base offset is the END of this hop (where we start returning from)
                 const baseX = rh.x + rh.stepX
                 const baseY = rh.y + rh.stepY
-                setAnimStates(new Map([[node.id, {
+                setNodeAnim(node.id, {
                   state: 'returning',
                   data: {
                     totalHops: reversedHops.length,
@@ -249,7 +278,7 @@ export function useGameState(radius = 2) {
                     baseOffsetY: baseY,
                     currentDir: rh.dir,
                   },
-                }]]))
+                })
               }, () => {
                 returnHop++
                 doReturnHop()
@@ -260,7 +289,7 @@ export function useGameState(radius = 2) {
         }
       )
     }
-  }, [activeIds, nodeMap, changerMap, animateHops, animateSegments])
+  }, [activeIds, nodeMap, changerMap, animateHops, animateSegments, setNodeAnim, clearNodeAnim])
 
   return {
     nodes,
@@ -268,7 +297,7 @@ export function useGameState(radius = 2) {
     changerMap,
     activeIds,
     animStates,
-    isWon: activeIds.size === 0,
+    isWon: activeIds.size === 0 && animCount === 0,
     piecesRemaining: activeIds.size,
     handleHexClick,
     newGame,
