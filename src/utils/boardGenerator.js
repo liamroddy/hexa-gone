@@ -1,4 +1,4 @@
-import { ALL_DIRECTIONS } from './hexDirections'
+import { ALL_DIRECTIONS, AXIAL_OFFSETS } from './hexDirections'
 import { buildGridStructure } from './hexGraph'
 import { pickRandom } from './helpers'
 import { DIRECTION_COLOUR } from '../theme'
@@ -67,7 +67,7 @@ export function generateSolvableBoard(radius = 2, changerCount = changerCountFor
       }
 
       const chosen = pickRandom(peelable)
-      const dir = pickRandom(chosen.dirs)
+      const dir = pickInwardDir(chosen.id, chosen.dirs, nodeMap)
       // Snapshot the remaining set so we can retrace the path later
       solveOrder.push({ id: chosen.id, dir, remainingSnapshot: new Set(remaining) })
       remaining.delete(chosen.id)
@@ -118,6 +118,37 @@ function traceHopsToChanger(nodeId, dir, remaining, nodeMap, changerMap) {
     currentId = nodeMap[currentId].neighbors[currentDir]
   }
   return -1 // never hit a changer
+}
+
+/**
+ * Pick a direction from `dirs` biased toward the board center.
+ *
+ * For each candidate direction we compute a dot-product between the
+ * direction's axial offset and the vector pointing from the node
+ * toward the center (0,0).  Directions that point more "inward" get
+ * a higher score.  We pick randomly among the top-scoring directions
+ * so there's still variety, but the solver strongly prefers inward
+ * paths first (e.g. SE for a top-left node).
+ */
+function pickInwardDir(nodeId, dirs, nodeMap) {
+  if (dirs.length === 1) return dirs[0]
+
+  const node = nodeMap[nodeId]
+  // Vector toward center: negate the node's position
+  const toCenterQ = -node.q
+  const toCenterR = -node.r
+
+  // Score each direction by how well it aligns with the center vector
+  const scored = dirs.map(d => {
+    const { dq, dr } = AXIAL_OFFSETS[d]
+    const dot = dq * toCenterQ + dr * toCenterR
+    return { dir: d, score: dot }
+  })
+
+  scored.sort((a, b) => b.score - a.score)
+  const bestScore = scored[0].score
+  const best = scored.filter(s => s.score === bestScore)
+  return pickRandom(best).dir
 }
 
 /**
