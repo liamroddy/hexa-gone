@@ -79,7 +79,7 @@ export function useGameState(radius = 2, hexSize = 30) {
       })
       orchestrateEscape(
         node.id, result.segments, layout.stepPixelForDir,
-        setNodeAnim, () => clearAnimating(node.id),
+        setNodeAnim, () => clearAnimating(node.id), node.arrowDirection,
       )
     } else if (result.result === 'blocked') {
       orchestrateBlocked(

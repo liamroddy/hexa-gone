@@ -77,10 +77,10 @@ function reverseHopAnimation(hopOffsets, onFrame, onDone) {
   nextHop()
 }
 
-export function orchestrateEscape(nodeId, segments, stepPixelForDir, setNodeAnim, onComplete) {
+export function orchestrateEscape(nodeId, segments, stepPixelForDir, setNodeAnim, onComplete, arrowDir) {
   const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
   const totalHops = offsets.length
-  const lastDir = segments.length > 0 ? segments[segments.length - 1].dir : null
+  const lastDir = segments.length > 0 ? segments[segments.length - 1].dir : arrowDir
 
   const doFall = () => {
     const fallStep = lastDir ? stepPixelForDir(lastDir) : { x: 0, y: 0 }
