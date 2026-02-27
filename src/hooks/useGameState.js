@@ -9,7 +9,7 @@ const FALL_DURATION  = 350   // rolling off the edge + fade
 const HIT_FLASH_DUR  = 180   // white flash on collision
 const RETURN_HOP_DUR = 180   // each hop on the way back (slightly faster)
 
-export function useGameState(radius = 2) {
+export function useGameState(radius = 2, hexSize = 30) {
   const [gameKey, setGameKey] = useState(0)
   const { nodes, nodeMap, changerMap, playableNodes } = useMemo(() => generateSolvableBoard(radius), [gameKey, radius])
 
@@ -66,7 +66,7 @@ export function useGameState(radius = 2) {
     const doSegment = () => {
       if (segIdx >= segments.length) { onAllDone(); return }
       const seg = segments[segIdx]
-      const stepPixel = computeStepPixelForDir(seg.dir, nodeMap)
+      const stepPixel = computeStepPixelForDir(seg.dir, nodeMap, hexSize)
       let hop = 0
       const doHop = () => {
         if (hop >= seg.count) { segIdx++; doSegment(); return }
@@ -134,7 +134,7 @@ export function useGameState(radius = 2) {
     const hopOffsets = [] // [{x, y}] indexed by global hop
     let gHop = 0
     for (const seg of segments) {
-      const sp = computeStepPixelForDir(seg.dir, nodeMap)
+      const sp = computeStepPixelForDir(seg.dir, nodeMap, hexSize)
       for (let i = 0; i < seg.count; i++) {
         hopOffsets.push({ x: cumulativeX, y: cumulativeY, stepX: sp.x, stepY: sp.y, dir: seg.dir })
         cumulativeX += sp.x
@@ -145,12 +145,12 @@ export function useGameState(radius = 2) {
     const totalHops = hopOffsets.length
 
     // For the initial direction (used for fallback / simple cases)
-    const stepPixel = computeStepPixel(node, path, nodeMap)
+    const stepPixel = computeStepPixel(node, path, nodeMap, hexSize)
 
     if (result.result === 'escape') {
       // Determine the final direction for the fall-off animation
       const fallDir = segments.length > 0 ? segments[segments.length - 1].dir : node.arrowDirection
-      const fallStep = computeStepPixelForDir(fallDir, nodeMap)
+      const fallStep = computeStepPixelForDir(fallDir, nodeMap, hexSize)
 
       const doFall = () => {
         animateValue(FALL_DURATION, (t) => {

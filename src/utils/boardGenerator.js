@@ -3,8 +3,16 @@ import { buildGridStructure } from './hexGraph'
 import { pickRandom } from './helpers'
 import { DIRECTION_COLOUR } from '../theme'
 
-/** Number of direction changers to place per board */
-export const DIRECTION_CHANGER_COUNT = 3
+/**
+ * Scale direction-changer count with board size.
+ * radius 2 → 3 changers (original), radius 3 → 5, radius 4 → 8, etc.
+ */
+export function changerCountForRadius(radius) {
+  if (radius <= 2) return 3
+  // Roughly: 1 changer per 6 hexes, minimum 3
+  const totalHexes = 3 * radius * radius + 3 * radius + 1
+  return Math.max(3, Math.round(totalHexes / 6))
+}
 
 /** Minimum hops before hitting a changer for it to count as "interesting" */
 const MIN_HOPS_TO_CHANGER = 2
@@ -20,7 +28,7 @@ const MIN_HOPS_TO_CHANGER = 2
  * before reaching it) so changers are meaningful gameplay elements.
  * If not, we retry with a fresh layout.
  */
-export function generateSolvableBoard(radius = 2, changerCount = DIRECTION_CHANGER_COUNT) {
+export function generateSolvableBoard(radius = 2, changerCount = changerCountForRadius(radius)) {
   const { nodes, nodeMap } = buildGridStructure(radius)
 
   // Interior hexes: those with a neighbor in every direction (not on the edge)

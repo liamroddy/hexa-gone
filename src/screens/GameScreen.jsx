@@ -1,20 +1,28 @@
 import HexBoard from '../components/HexBoard'
 import { useGameState } from '../hooks/useGameState'
 
-export default function GameScreen({ onBack }) {
+/** Shrink hexes on bigger boards so they fit comfortably */
+function hexSizeForRadius(radius) {
+  if (radius <= 2) return 30
+  if (radius === 3) return 22
+  return 18
+}
+
+export default function GameScreen({ radius = 2, onBack }) {
+  const hexSize = hexSizeForRadius(radius)
+
   const {
     nodes, activeIds, animStates, isWon, piecesRemaining,
     handleHexClick, newGame, retry, changerMap,
-  } = useGameState(2)
+  } = useGameState(radius, hexSize)
 
   return (
     <div className="screen game-screen" style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* Board fills viewport; overflow:hidden here clips flying hexes at screen edge */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 600 }}>
           <HexBoard
             nodes={nodes}
-            hexSize={30}
+            hexSize={hexSize}
             onHexClick={handleHexClick}
             animStates={animStates}
             activeIds={activeIds}
@@ -23,7 +31,6 @@ export default function GameScreen({ onBack }) {
         </div>
       </div>
 
-      {/* UI overlay */}
       <div style={{ position: 'relative', zIndex: 1, pointerEvents: 'none', display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ flex: 1 }} />
         <div style={{ pointerEvents: 'auto', textAlign: 'center', paddingBottom: '2rem' }}>
