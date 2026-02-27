@@ -4,10 +4,6 @@ import GameScreen from './screens/GameScreen'
 import HowToPlayScreen from './screens/HowToPlayScreen'
 import './App.css'
 
-/**
- * Difficulty presets: radius is the "rings" around the center hex.
- * radius 2 → 19 hexes (3 per side), radius 3 → 37, radius 4 → 61
- */
 const DIFFICULTIES = {
   easy:   { radius: 2, label: 'Easy' },
   medium: { radius: 3, label: 'Medium' },
@@ -24,9 +20,10 @@ export default function App() {
   }
 
   if (page === 'game') {
-    const { radius } = DIFFICULTIES[difficulty]
-    return <GameScreen radius={radius} onBack={() => setPage('splash')} />
+    return <GameScreen radius={DIFFICULTIES[difficulty].radius} onBack={() => setPage('splash')} />
   }
-  if (page === 'howto') return <HowToPlayScreen onBack={() => setPage('splash')} />
+  if (page === 'howto') {
+    return <HowToPlayScreen onBack={() => setPage('splash')} />
+  }
   return <SplashScreen onStart={startGame} onHowTo={() => setPage('howto')} difficulties={DIFFICULTIES} />
 }

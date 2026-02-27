@@ -1,21 +1,14 @@
 import { HexDirection, ALL_DIRECTIONS, oppositeDir, AXIAL_OFFSETS } from './hexDirections'
 
-export function createHexNode(id) {
+function createHexNode(id) {
   return {
     id,
     arrowDirection: undefined,
-    neighbors: {
-      [HexDirection.North]:     null,
-      [HexDirection.NorthEast]: null,
-      [HexDirection.SouthEast]: null,
-      [HexDirection.South]:     null,
-      [HexDirection.SouthWest]: null,
-      [HexDirection.NorthWest]: null,
-    },
+    neighbors: Object.fromEntries(ALL_DIRECTIONS.map(d => [d, null])),
   }
 }
 
-export function linkNodes(nodeA, dir, nodeB) {
+function linkNodes(nodeA, dir, nodeB) {
   nodeA.neighbors[dir] = nodeB.id
   nodeB.neighbors[oppositeDir(dir)] = nodeA.id
 }
