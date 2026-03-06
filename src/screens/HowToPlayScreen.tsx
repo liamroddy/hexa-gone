@@ -1,4 +1,8 @@
-export default function HowToPlayScreen({ onBack }) {
+interface HowToPlayScreenProps {
+  onBack: () => void
+}
+
+export default function HowToPlayScreen({ onBack }: HowToPlayScreenProps) {
   return (
     <div className="screen">
       <h2>How to Play</h2>

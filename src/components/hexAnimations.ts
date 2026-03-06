@@ -1,6 +1,7 @@
+import type { Direction, RollValues, RollInput } from '../types'
 import { HexDirection } from '../utils/hexDirections'
 
-const DIR_ANGLE = {
+const DIR_ANGLE: Record<Direction, number> = {
   [HexDirection.North]:     -90,
   [HexDirection.NorthEast]: -30,
   [HexDirection.SouthEast]:  30,
@@ -9,15 +10,15 @@ const DIR_ANGLE = {
   [HexDirection.NorthWest]:  210,
 }
 
-function easeInOutCubic(t) {
+function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
-function easeOutQuad(t) {
+function easeOutQuad(t: number): number {
   return 1 - (1 - t) * (1 - t)
 }
 
-function rollProfile(t) {
+function rollProfile(t: number): { hopT: number; tiltY: number; showBottom: boolean } {
   const cosA = Math.cos(t * Math.PI)
   return {
     hopT: easeInOutCubic(t),
@@ -26,20 +27,20 @@ function rollProfile(t) {
   }
 }
 
-export function computeRollValues({ animState, animData = {}, direction, size, color }) {
-  const activeDir = animData.currentDir || direction
-  const dirAngle = DIR_ANGLE[activeDir] || DIR_ANGLE[direction] || 0
+export function computeRollValues({ animState, animData = {}, direction, size: _size, color }: RollInput): RollValues {
+  const activeDir = animData.currentDir ?? direction
+  const dirAngle = (activeDir ? DIR_ANGLE[activeDir] : undefined) ?? (direction ? DIR_ANGLE[direction] : undefined) ?? 0
 
   let translateX = 0
   let translateY = 0
   let scaleX = 1
   let scaleY = 1
   let opacity = 1
-  let fillColor = color || 'var(--colour-hex-fill, #1a1a2e)'
+  let fillColor = color ?? 'var(--colour-hex-fill, #1a1a2e)'
   let showBottom = false
 
   const {
-    currentHop = 0,
+    currentHop: _currentHop = 0,
     hopProgress = 0,
     stepX = 0,
     stepY = 0,
@@ -50,7 +51,7 @@ export function computeRollValues({ animState, animData = {}, direction, size, c
   if (animState === 'rolling' || animState === 'falling' || animState === 'returning') {
     const { hopT, tiltY, showBottom: sb } = rollProfile(hopProgress)
 
-    const completedHops = currentHop + hopT
+    const completedHops = (_currentHop) + hopT
     translateX = baseOffsetX + stepX * completedHops
     translateY = baseOffsetY + stepY * completedHops
 
@@ -65,10 +66,10 @@ export function computeRollValues({ animState, animData = {}, direction, size, c
       scaleY *= shrink
     }
   } else if (animState === 'hit') {
-    translateX = baseOffsetX + stepX * (animData.hitAtHops || 0)
-    translateY = baseOffsetY + stepY * (animData.hitAtHops || 0)
+    translateX = baseOffsetX + stepX * (animData.hitAtHops ?? 0)
+    translateY = baseOffsetY + stepY * (animData.hitAtHops ?? 0)
 
-    const flash = animData.flashT || 0
+    const flash = animData.flashT ?? 0
     if (flash > 0) {
       const intensity = Math.round(255 * flash)
       fillColor = `rgb(${intensity},${intensity},${intensity})`

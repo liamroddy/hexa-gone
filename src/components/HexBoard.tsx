@@ -1,8 +1,25 @@
+import type { HexNodeData, AnimEntry, ChangerMap } from '../types'
 import HexNode from './HexNode'
 import { hexPoints, changerChevronPath, ARROW_ROTATION } from './hexGeometry'
 import { createLayout, DEPTH_FACTOR } from '../utils/hexLayout'
 
-export default function HexBoard({ nodes, hexSize = 30, onHexClick, animStates = new Map(), activeIds, changerMap = {} }) {
+interface HexBoardProps {
+  nodes: HexNodeData[]
+  hexSize?: number
+  onHexClick?: (node: HexNodeData) => void
+  animStates?: Map<string, AnimEntry>
+  activeIds?: Set<string>
+  changerMap?: ChangerMap
+}
+
+export default function HexBoard({
+  nodes,
+  hexSize = 30,
+  onHexClick,
+  animStates = new Map(),
+  activeIds,
+  changerMap = {},
+}: HexBoardProps) {
   const layout = createLayout(hexSize)
 
   const positioned = nodes.map(node => ({

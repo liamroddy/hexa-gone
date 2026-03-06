@@ -1,9 +1,10 @@
+import type { Direction, NodeMap, ChangerMap, Board } from '../types'
 import { ALL_DIRECTIONS, AXIAL_OFFSETS } from './hexDirections'
 import { buildGridStructure } from './hexGraph'
 import { pickRandom } from './helpers'
 import { DIRECTION_COLOUR } from '../theme'
 
-export function changerCountForRadius(radius) {
+export function changerCountForRadius(radius: number): number {
   if (radius <= 2) return 3
   const totalHexes = 3 * radius * radius + 3 * radius + 1
   return Math.max(3, Math.round(totalHexes / 6))
@@ -11,14 +12,19 @@ export function changerCountForRadius(radius) {
 
 const MIN_HOPS_TO_CHANGER = 2
 
+interface SolveStep {
+  id: string
+  dir: Direction
+  remainingSnapshot: Set<string>
+}
+
 /**
  * Generates a guaranteed-solvable board using a "peel from outside in" strategy.
- *
- * Direction changers are placed on interior hexes only. The generator retries
- * until at least one node's escape path meaningfully routes through a changer
- * (with >= MIN_HOPS_TO_CHANGER hops before reaching it).
  */
-export function generateSolvableBoard(radius = 2, changerCount = changerCountForRadius(radius)) {
+export function generateSolvableBoard(
+  radius = 2,
+  changerCount = changerCountForRadius(radius),
+): Board {
   const { nodes, nodeMap } = buildGridStructure(radius)
 
   const interiorIds = nodes
@@ -28,7 +34,7 @@ export function generateSolvableBoard(radius = 2, changerCount = changerCountFor
   const actualCount = Math.min(changerCount, interiorIds.length)
 
   for (;;) {
-    const changerMap = {}
+    const changerMap: ChangerMap = {}
     const shuffled = [...interiorIds].sort(() => Math.random() - 0.5)
     const changerPositions = new Set(shuffled.slice(0, actualCount))
     for (const id of changerPositions) {
@@ -37,11 +43,11 @@ export function generateSolvableBoard(radius = 2, changerCount = changerCountFor
 
     const playableNodes = nodes.filter(n => !changerPositions.has(n.id))
     const remaining = new Set(playableNodes.map(n => n.id))
-    const solveOrder = []
+    const solveOrder: SolveStep[] = []
     let stuck = false
 
     while (remaining.size > 0) {
-      const peelable = []
+      const peelable: { id: string; dirs: Direction[] }[] = []
       for (const id of remaining) {
         const dirs = getEscapeDirs(id, remaining, nodeMap, changerMap)
         if (dirs.length > 0) peelable.push({ id, dirs })
@@ -63,36 +69,47 @@ export function generateSolvableBoard(radius = 2, changerCount = changerCountFor
     if (!anyChangerUsed) continue
 
     for (const { id, dir } of solveOrder) {
-      nodeMap[id].arrowDirection = dir
-      nodeMap[id].color = DIRECTION_COLOUR[dir]
+      const node = nodeMap[id]
+      if (node) {
+        node.arrowDirection = dir
+        node.color = DIRECTION_COLOUR[dir]
+      }
     }
 
     return { nodes, nodeMap, changerMap, playableNodes }
   }
 }
 
-function traceHopsToChanger(nodeId, dir, remaining, nodeMap, changerMap) {
+function traceHopsToChanger(
+  nodeId: string,
+  dir: Direction,
+  remaining: Set<string>,
+  nodeMap: NodeMap,
+  changerMap: ChangerMap,
+): number {
   let currentDir = dir
-  let currentId = nodeMap[nodeId].neighbors[currentDir]
+  const startNode = nodeMap[nodeId]
+  if (!startNode) return -1
+  let currentId = startNode.neighbors[currentDir]
   let hops = 0
 
   while (currentId !== null) {
     if (remaining.has(currentId) && currentId !== nodeId) return -1
     hops++
     if (changerMap[currentId] && changerMap[currentId] !== currentDir) return hops
-    currentId = nodeMap[currentId].neighbors[currentDir]
+    const nextNode = nodeMap[currentId]
+    currentId = nextNode ? nextNode.neighbors[currentDir] : null
   }
   return -1
 }
 
 /**
- * Picks a direction biased toward the board center using dot-product scoring
- * against the vector from the node toward (0,0).
+ * Picks a direction biased toward the board center using dot-product scoring.
  */
-function pickInwardDir(nodeId, dirs, nodeMap) {
-  if (dirs.length === 1) return dirs[0]
+function pickInwardDir(nodeId: string, dirs: Direction[], nodeMap: NodeMap): Direction {
+  if (dirs.length === 1) return dirs[0]!
 
-  const node = nodeMap[nodeId]
+  const node = nodeMap[nodeId]!
   const toCenterQ = -node.q
   const toCenterR = -node.r
 
@@ -102,25 +119,33 @@ function pickInwardDir(nodeId, dirs, nodeMap) {
   })
 
   scored.sort((a, b) => b.score - a.score)
-  const bestScore = scored[0].score
+  const bestScore = scored[0]!.score
   const best = scored.filter(s => s.score === bestScore)
   return pickRandom(best).dir
 }
 
-function getEscapeDirs(nodeId, remaining, nodeMap, changerMap) {
+function getEscapeDirs(
+  nodeId: string,
+  remaining: Set<string>,
+  nodeMap: NodeMap,
+  changerMap: ChangerMap,
+): Direction[] {
   const node = nodeMap[nodeId]
+  if (!node) return []
   return ALL_DIRECTIONS.filter(dir => {
-    let currentDir = dir
+    let currentDir: Direction = dir
     let currentId = node.neighbors[currentDir]
-    const visited = new Set()
+    const visited = new Set<string>()
     while (currentId !== null) {
       if (remaining.has(currentId)) return false
-      if (changerMap[currentId] && changerMap[currentId] !== currentDir) {
+      const changerDir = changerMap[currentId]
+      if (changerDir && changerDir !== currentDir) {
         if (visited.has(currentId)) return false
         visited.add(currentId)
-        currentDir = changerMap[currentId]
+        currentDir = changerDir
       }
-      currentId = nodeMap[currentId].neighbors[currentDir]
+      const nextNode = nodeMap[currentId]
+      currentId = nextNode ? nextNode.neighbors[currentDir] : null
     }
     return true
   })

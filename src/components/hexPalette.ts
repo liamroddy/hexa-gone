@@ -1,15 +1,24 @@
-function hexToHsl(hex) {
+import type { FacePaletteResult } from '../types'
+
+interface HSL {
+  h: number
+  s: number
+  l: number
+}
+
+function hexToHsl(hex: string): HSL {
   const h = hex.replace('#', '')
-  let r = parseInt(h.substring(0, 2), 16) / 255
-  let g = parseInt(h.substring(2, 4), 16) / 255
-  let b = parseInt(h.substring(4, 6), 16) / 255
+  const r = parseInt(h.substring(0, 2), 16) / 255
+  const g = parseInt(h.substring(2, 4), 16) / 255
+  const b = parseInt(h.substring(4, 6), 16) / 255
 
-  const max = Math.max(r, g, b), min = Math.min(r, g, b)
-  let hue, sat, lit = (max + min) / 2
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let hue = 0
+  let sat = 0
+  const lit = (max + min) / 2
 
-  if (max === min) {
-    hue = sat = 0
-  } else {
+  if (max !== min) {
     const d = max - min
     sat = lit > 0.5 ? d / (2 - max - min) : d / (max + min)
     if (max === r) hue = ((g - b) / d + (g < b ? 6 : 0)) / 6
@@ -20,16 +29,16 @@ function hexToHsl(hex) {
   return { h: hue * 360, s: sat * 100, l: lit * 100 }
 }
 
-function hslToHex({ h, s, l }) {
+function hslToHex({ h, s, l }: HSL): string {
   h /= 360; s /= 100; l /= 100
-  const clamp = v => Math.max(0, Math.min(255, Math.round(v * 255)))
+  const clamp = (v: number): number => Math.max(0, Math.min(255, Math.round(v * 255)))
 
   if (s === 0) {
     const v = clamp(l)
     return `#${[v, v, v].map(c => c.toString(16).padStart(2, '0')).join('')}`
   }
 
-  const hue2rgb = (p, q, t) => {
+  const hue2rgb = (p: number, q: number, t: number): number => {
     if (t < 0) t += 1
     if (t > 1) t -= 1
     if (t < 1/6) return p + (q - p) * 6 * t
@@ -47,7 +56,7 @@ function hslToHex({ h, s, l }) {
   return `#${[r, g, b].map(c => c.toString(16).padStart(2, '0')).join('')}`
 }
 
-function shiftHsl(base, dS, dL) {
+function shiftHsl(base: HSL, dS: number, dL: number): string {
   return hslToHex({
     h: base.h,
     s: Math.max(0, Math.min(100, base.s + dS)),
@@ -55,9 +64,10 @@ function shiftHsl(base, dS, dL) {
   })
 }
 
-export function facePalette(baseHex) {
+export function facePalette(baseHex: string | undefined): FacePaletteResult {
   if (!baseHex || !baseHex.startsWith('#')) {
-    return { top: baseHex, right: baseHex, left: baseHex, bottom: baseHex }
+    const fallback = baseHex ?? ''
+    return { top: fallback, right: fallback, left: fallback, bottom: fallback }
   }
 
   const hsl = hexToHsl(baseHex)

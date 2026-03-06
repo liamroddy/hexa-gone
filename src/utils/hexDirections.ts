@@ -1,3 +1,5 @@
+import type { Direction, AxialOffset } from '../types'
+
 export const HexDirection = Object.freeze({
   North:     'N',
   NorthEast: 'NE',
@@ -5,11 +7,11 @@ export const HexDirection = Object.freeze({
   South:     'S',
   SouthWest: 'SW',
   NorthWest: 'NW',
-})
+} as const satisfies Record<string, Direction>)
 
-export const ALL_DIRECTIONS = Object.values(HexDirection)
+export const ALL_DIRECTIONS: readonly Direction[] = Object.values(HexDirection)
 
-const OPPOSITES = {
+const OPPOSITES: Record<Direction, Direction> = {
   [HexDirection.North]:     HexDirection.South,
   [HexDirection.NorthEast]: HexDirection.SouthWest,
   [HexDirection.SouthEast]: HexDirection.NorthWest,
@@ -18,11 +20,11 @@ const OPPOSITES = {
   [HexDirection.NorthWest]: HexDirection.SouthEast,
 }
 
-export function oppositeDir(dir) {
+export function oppositeDir(dir: Direction): Direction {
   return OPPOSITES[dir]
 }
 
-export const AXIAL_OFFSETS = {
+export const AXIAL_OFFSETS: Record<Direction, AxialOffset> = {
   [HexDirection.North]:     { dq:  0, dr: -1 },
   [HexDirection.NorthEast]: { dq:  1, dr: -1 },
   [HexDirection.SouthEast]: { dq:  1, dr:  0 },

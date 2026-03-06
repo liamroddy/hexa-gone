@@ -1,6 +1,7 @@
+import type { Direction, ExtrudedHexFaces } from '../types'
 import { HexDirection } from '../utils/hexDirections'
 
-export const ARROW_ROTATION = {
+export const ARROW_ROTATION: Record<Direction, number> = {
   [HexDirection.North]:     0,
   [HexDirection.NorthEast]: 60,
   [HexDirection.SouthEast]: 120,
@@ -11,37 +12,41 @@ export const ARROW_ROTATION = {
 
 const DEPTH_FACTOR = 0.28
 
-function rawHexVerts(size) {
+interface Vertex {
+  x: number
+  y: number
+}
+
+function rawHexVerts(size: number): Vertex[] {
   return Array.from({ length: 6 }, (_, i) => {
     const angle = (Math.PI / 180) * (60 * i)
     return { x: size * Math.cos(angle), y: size * Math.sin(angle) }
   })
 }
 
-export function hexPoints(size) {
+export function hexPoints(size: number): string {
   return rawHexVerts(size).map(v => `${v.x},${v.y}`).join(' ')
 }
 
-function toPointsStr(verts) {
+function toPointsStr(verts: Vertex[]): string {
   return verts.map(v => `${v.x},${v.y}`).join(' ')
 }
 
-// Vertex indices (pointy-top): 0=right, 1=bottom-right, 2=bottom-left, 3=left, 4=top-left, 5=top-right
-export function extrudedHex(size) {
+export function extrudedHex(size: number): ExtrudedHexFaces {
   const depth = size * DEPTH_FACTOR
   const verts = rawHexVerts(size)
   const topVerts = verts.map(v => ({ x: v.x, y: v.y - depth }))
 
   return {
     top:    toPointsStr(topVerts),
-    bottom: toPointsStr([topVerts[2], topVerts[1], verts[1], verts[2]]),
-    left:   toPointsStr([topVerts[3], topVerts[2], verts[2], verts[3]]),
-    right:  toPointsStr([topVerts[1], topVerts[0], verts[0], verts[1]]),
+    bottom: toPointsStr([topVerts[2]!, topVerts[1]!, verts[1]!, verts[2]!]),
+    left:   toPointsStr([topVerts[3]!, topVerts[2]!, verts[2]!, verts[3]!]),
+    right:  toPointsStr([topVerts[1]!, topVerts[0]!, verts[0]!, verts[1]!]),
     depth,
   }
 }
 
-export function arrowPath(size) {
+export function arrowPath(size: number): string {
   const hw = size * 0.05
   const hh = size * 0.18
   const tip  = -size * 0.42
@@ -57,10 +62,10 @@ export function arrowPath(size) {
   ].join(' ')
 }
 
-export function changerChevronPath(size) {
+export function changerChevronPath(size: number): string {
   const s = size * 0.28
   const gap = size * 0.28
-  const chevrons = []
+  const chevrons: string[] = []
   for (let i = 0; i < 3; i++) {
     const cy = gap * (i - 1)
     chevrons.push(

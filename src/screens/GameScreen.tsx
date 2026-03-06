@@ -1,14 +1,19 @@
 import HexBoard from '../components/HexBoard'
 import { useGameState } from '../hooks/useGameState'
 
+interface GameScreenProps {
+  radius?: number
+  onBack: () => void
+}
+
 /** Shrink hexes on bigger boards so they fit comfortably */
-function hexSizeForRadius(radius) {
+function hexSizeForRadius(radius: number): number {
   if (radius <= 2) return 30
   if (radius === 3) return 22
   return 18
 }
 
-export default function GameScreen({ radius = 2, onBack }) {
+export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
   const hexSize = hexSizeForRadius(radius)
 
   const {

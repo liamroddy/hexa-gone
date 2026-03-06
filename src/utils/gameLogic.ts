@@ -1,3 +1,5 @@
+import type { HexNodeData, NodeMap, ChangerMap, SlideResult, SlideSegment, Direction } from '../types'
+
 /**
  * Resolves a hex slide in its arrow direction.
  *
@@ -8,16 +10,21 @@
  *
  * `segments` describes direction changes: [{dir, count}, ...] for animation.
  */
-export function resolveSlide(node, nodeMap, activeNodeIds, changerMap = {}) {
+export function resolveSlide(
+  node: HexNodeData,
+  nodeMap: NodeMap,
+  activeNodeIds: Set<string>,
+  changerMap: ChangerMap = {},
+): SlideResult | null {
   const dir = node.arrowDirection
   if (!dir) return null
 
-  const path = []
-  const segments = []
-  let currentDir = dir
+  const path: string[] = []
+  const segments: SlideSegment[] = []
+  let currentDir: Direction = dir
   let segCount = 0
   let currentId = node.neighbors[currentDir]
-  const visited = new Set()
+  const visited = new Set<string>()
 
   while (currentId !== null) {
     if (activeNodeIds.has(currentId)) {
@@ -28,15 +35,17 @@ export function resolveSlide(node, nodeMap, activeNodeIds, changerMap = {}) {
     path.push(currentId)
     segCount++
 
-    if (changerMap[currentId] && changerMap[currentId] !== currentDir) {
+    const changerDir = changerMap[currentId]
+    if (changerDir && changerDir !== currentDir) {
       if (visited.has(currentId)) break
       visited.add(currentId)
       segments.push({ dir: currentDir, count: segCount })
-      currentDir = changerMap[currentId]
+      currentDir = changerDir
       segCount = 0
     }
 
-    currentId = nodeMap[currentId].neighbors[currentDir]
+    const nextNode = nodeMap[currentId]
+    currentId = nextNode ? nextNode.neighbors[currentDir] : null
   }
 
   if (segCount > 0) segments.push({ dir: currentDir, count: segCount })

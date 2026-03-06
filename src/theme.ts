@@ -1,4 +1,6 @@
-export const DIRECTION_COLOUR = {
+import type { Direction } from './types'
+
+export const DIRECTION_COLOUR: Record<Direction, string> = {
   N:  '#ff2d2d',
   NE: '#ff7700',
   SE: '#00b894',

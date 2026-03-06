@@ -1,3 +1,4 @@
+import type { Direction, Point, SlideSegment, HopOffset, SetNodeAnimFn } from '../types'
 import { animateValue } from '../utils/animate'
 
 const HOP_DURATION   = 220
@@ -5,8 +6,11 @@ const FALL_DURATION  = 350
 const HIT_FLASH_DUR  = 180
 const RETURN_HOP_DUR = 180
 
-function buildHopOffsets(segments, stepPixelForDir) {
-  const offsets = []
+function buildHopOffsets(
+  segments: SlideSegment[],
+  stepPixelForDir: (dir: Direction) => Point,
+): { offsets: HopOffset[]; endX: number; endY: number } {
+  const offsets: HopOffset[] = []
   let cumulativeX = 0
   let cumulativeY = 0
 
@@ -22,17 +26,22 @@ function buildHopOffsets(segments, stepPixelForDir) {
   return { offsets, endX: cumulativeX, endY: cumulativeY }
 }
 
-function animateSegmentHops(segments, stepPixelForDir, perHopDur, onHopFrame, onDone) {
+function animateSegmentHops(
+  segments: SlideSegment[],
+  _stepPixelForDir: (dir: Direction) => Point,
+  perHopDur: number,
+  onHopFrame: (globalHop: number, t: number) => void,
+  onDone: () => void,
+): void {
   let segIdx = 0
   let globalHop = 0
 
-  const nextSegment = () => {
+  const nextSegment = (): void => {
     if (segIdx >= segments.length) { onDone(); return }
-    const seg = segments[segIdx]
-    const step = stepPixelForDir(seg.dir)
+    const seg = segments[segIdx]!
     let hop = 0
 
-    const nextHop = () => {
+    const nextHop = (): void => {
       if (hop >= seg.count) { segIdx++; nextSegment(); return }
       const currentGlobal = globalHop
       animateValue(perHopDur, (t) => onHopFrame(currentGlobal, t), () => {
@@ -46,20 +55,37 @@ function animateSegmentHops(segments, stepPixelForDir, perHopDur, onHopFrame, on
   nextSegment()
 }
 
-function flashAnimation(duration, onFrame, onDone) {
+function flashAnimation(
+  duration: number,
+  onFrame: (flashT: number) => void,
+  onDone: () => void,
+): void {
   animateValue(duration, (t) => {
     const flashT = t < 0.5 ? t * 2 : (1 - t) * 2
     onFrame(flashT)
   }, onDone)
 }
 
-function reverseHopAnimation(hopOffsets, onFrame, onDone) {
+interface ReverseFrame {
+  hopProgress: number
+  stepX: number
+  stepY: number
+  baseOffsetX: number
+  baseOffsetY: number
+  dir: Direction
+}
+
+function reverseHopAnimation(
+  hopOffsets: HopOffset[],
+  onFrame: (frame: ReverseFrame) => void,
+  onDone: () => void,
+): void {
   const reversed = [...hopOffsets].reverse()
   let idx = 0
 
-  const nextHop = () => {
+  const nextHop = (): void => {
     if (idx >= reversed.length) { onDone(); return }
-    const hop = reversed[idx]
+    const hop = reversed[idx]!
     animateValue(RETURN_HOP_DUR, (t) => {
       onFrame({
         hopProgress: t,
@@ -77,12 +103,19 @@ function reverseHopAnimation(hopOffsets, onFrame, onDone) {
   nextHop()
 }
 
-export function orchestrateEscape(nodeId, segments, stepPixelForDir, setNodeAnim, onComplete, arrowDir) {
+export function orchestrateEscape(
+  nodeId: string,
+  segments: SlideSegment[],
+  stepPixelForDir: (dir: Direction) => Point,
+  setNodeAnim: SetNodeAnimFn,
+  onComplete: () => void,
+  arrowDir: Direction | undefined,
+): void {
   const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
   const totalHops = offsets.length
-  const lastDir = segments.length > 0 ? segments[segments.length - 1].dir : arrowDir
+  const lastDir = segments.length > 0 ? segments[segments.length - 1]!.dir : arrowDir
 
-  const doFall = () => {
+  const doFall = (): void => {
     const fallStep = lastDir ? stepPixelForDir(lastDir) : { x: 0, y: 0 }
     animateValue(FALL_DURATION, (t) => {
       setNodeAnim(nodeId, {
@@ -109,7 +142,7 @@ export function orchestrateEscape(nodeId, segments, stepPixelForDir, setNodeAnim
 
   animateSegmentHops(segments, stepPixelForDir, HOP_DURATION,
     (globalHop, t) => {
-      const hop = offsets[globalHop]
+      const hop = offsets[globalHop]!
       setNodeAnim(nodeId, {
         state: 'rolling',
         data: {
@@ -126,12 +159,18 @@ export function orchestrateEscape(nodeId, segments, stepPixelForDir, setNodeAnim
   )
 }
 
-export function orchestrateBlocked(nodeId, segments, stepPixelForDir, setNodeAnim, onComplete) {
+export function orchestrateBlocked(
+  nodeId: string,
+  segments: SlideSegment[],
+  stepPixelForDir: (dir: Direction) => Point,
+  setNodeAnim: SetNodeAnimFn,
+  onComplete: () => void,
+): void {
   const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
   const totalHops = offsets.length
 
   if (totalHops === 0) {
-    const step = segments.length > 0 ? stepPixelForDir(segments[0].dir) : { x: 0, y: 0 }
+    const step = segments.length > 0 ? stepPixelForDir(segments[0]!.dir) : { x: 0, y: 0 }
     flashAnimation(HIT_FLASH_DUR, (flashT) => {
       setNodeAnim(nodeId, {
         state: 'hit',
@@ -147,7 +186,7 @@ export function orchestrateBlocked(nodeId, segments, stepPixelForDir, setNodeAni
   // Phase 1: roll forward
   animateSegmentHops(segments, stepPixelForDir, HOP_DURATION,
     (globalHop, t) => {
-      const hop = offsets[globalHop]
+      const hop = offsets[globalHop]!
       setNodeAnim(nodeId, {
         state: 'rolling',
         data: {

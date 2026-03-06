@@ -1,22 +1,33 @@
+import type { HexNodeData, AnimStateName, AnimData } from '../types'
 import { ARROW_ROTATION, extrudedHex, arrowPath } from './hexGeometry'
 import { computeRollValues } from './hexAnimations'
 import { facePalette } from './hexPalette'
 
-export default function HexNode({ node, x, y, size = 40, onClick, animState, animData }) {
+interface HexNodeProps {
+  node: HexNodeData
+  x: number
+  y: number
+  size?: number
+  onClick?: (node: HexNodeData) => void
+  animState?: AnimStateName
+  animData?: AnimData
+}
+
+export default function HexNode({ node, x, y, size = 40, onClick, animState, animData }: HexNodeProps) {
   if (animState === 'gone') return null
 
   const {
     translateX, translateY,
     scaleX, scaleY,
     opacity, fillColor,
-    showBottom, dirAngle,
-  } = computeRollValues({ animState, animData, direction: node.arrowDirection, size, color: node.color })
+    dirAngle,
+  } = computeRollValues({ animState, animData: animData ?? {}, direction: node.arrowDirection, size, color: node.color })
 
   const { top, bottom, left, right, depth } = extrudedHex(size)
   const palette = facePalette(fillColor)
   const arrow = arrowPath(size)
-  const activeDir = animData?.currentDir || node.arrowDirection
-  const rotation = ARROW_ROTATION[activeDir] ?? 0
+  const activeDir = animData?.currentDir ?? node.arrowDirection
+  const rotation = activeDir ? (ARROW_ROTATION[activeDir] ?? 0) : 0
   const tiltAngle = dirAngle || 0
 
   return (
