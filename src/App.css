@@ -25,7 +25,7 @@
 }
 
 .game-title {
-  font-size: 5rem;
+  font-size: 3rem;
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -49,6 +49,12 @@
   text-transform: uppercase;
   transition: transform 0.1s ease, opacity 0.1s ease;
 
+  background: transparent;
+  color: var(--colour-text);
+  font-size: 1rem;
+  padding: 0.6rem 2rem;
+  border: 2px solid var(--colour-border-subtle);
+
   &:hover {
     transform: scale(1.04);
   }
@@ -58,56 +64,31 @@
     opacity: 0.85;
   }
 
-  &.btn-start {
+  &.btn-big {
     background: var(--colour-highlight);
     color: var(--colour-bg-dark);
     font-size: 1.5rem;
     padding: 1rem 3rem;
   }
 
-  &.btn-howto {
-    background: transparent;
-    color: var(--colour-highlight);
-    font-size: 1rem;
-    padding: 0.6rem 2rem;
-    border: 2px solid var(--colour-highlight);
-  }
-
-  &.btn-main-menu {
-    background: transparent;
-    color: var(--colour-text);
-    font-size: 1rem;
-    padding: 0.6rem 2rem;
-    border: 2px solid var(--colour-border-subtle);
-    margin-top: 1rem;
-  }
-
-  &.btn-new-game {
+  &.btn-medium {
     background: var(--colour-highlight);
     color: var(--colour-bg-dark);
-    font-size: 1.25rem;
-    padding: 0.75rem 2.5rem;
+    font-size: 1.2rem;
   }
 
-  &.btn-retry {
+  &.btn-pause {
     background: transparent;
-    color: var(--colour-highlight);
-    font-size: 1rem;
-    padding: 0.6rem 2rem;
-    border: 2px solid var(--colour-highlight);
-    margin-top: 0.5rem;
+    color: var(--colour-text);
+    font-size: 1.5rem;
+    padding: 0.4rem 0.7rem;
+    border: 2px solid var(--colour-border-subtle);
+    border-radius: 8px;
+    line-height: 1;
   }
 }
 
-.btn-pause {
-  background: transparent;
-  color: var(--colour-text);
-  font-size: 1.5rem;
-  padding: 0.4rem 0.7rem;
-  border: 2px solid var(--colour-border-subtle);
-  border-radius: 8px;
-  line-height: 1;
-}
+
 
 .modal-overlay {
   position: fixed;

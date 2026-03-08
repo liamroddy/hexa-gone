@@ -7,7 +7,7 @@ export default function HowToPlayScreen({ onBack }: HowToPlayScreenProps) {
     <div className="screen">
       <h2>How to Play</h2>
       <p>Instructions coming soon...</p>
-      <button className="btn btn-main-menu" onClick={onBack}>Main Menu</button>
+      <button className="btn" onClick={onBack}>Main Menu</button>
     </div>
   )
 }

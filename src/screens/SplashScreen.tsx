@@ -9,14 +9,14 @@ interface SplashScreenProps {
 export default function SplashScreen({ onStart, onHowTo, difficulties }: SplashScreenProps) {
   return (
     <div className="screen splash">
-      <h1 className="game-title">Hexa-Gone</h1>
+      <h1 className="game-title">Hexa<br></br>Gone</h1>
       <div className="button-group">
         {(Object.entries(difficulties) as [DifficultyKey, DifficultyConfig][]).map(([key, { label }]) => (
-          <button key={key} className="btn btn-start" onClick={() => onStart(key)}>
+          <button key={key} className="btn btn-big" onClick={() => onStart(key)}>
             {label}
           </button>
         ))}
-        <button className="btn btn-howto" onClick={onHowTo}>How to Play</button>
+        <button className="btn" onClick={onHowTo}>How to Play</button>
       </div>
     </div>
   )

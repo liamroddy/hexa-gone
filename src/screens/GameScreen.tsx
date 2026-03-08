@@ -46,9 +46,9 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
         <div className="modal-content" onClick={e => e.stopPropagation()}>
           <p className="win-message">Paused</p>
           <div className="modal-buttons">
-            <button className="btn btn-new-game" onClick={() => setPaused(false)}>Resume</button>
-            <button className="btn btn-retry" onClick={() => { setPaused(false); retry() }}>Retry</button>
-            <button className="btn btn-main-menu" onClick={onBack}>Main Menu</button>
+            <button className="btn btn-medium" onClick={() => setPaused(false)}>Resume</button>
+            <button className="btn" onClick={() => { setPaused(false); retry() }}>Retry</button>
+            <button className="btn" onClick={onBack}>Main Menu</button>
           </div>
         </div>
       </div>
@@ -62,8 +62,9 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
         <div className="modal-content" onClick={e => e.stopPropagation()}>
           <p className="win-message">Congrats, board cleared!</p>
           <div className="modal-buttons">
-            <button className="btn btn-new-game" onClick={newGame}>New Game</button>
-            <button className="btn btn-retry" onClick={retry}>Retry</button>
+            <button className="btn btn-medium" onClick={newGame}>New Game</button>
+            <button className="btn" onClick={retry}>Retry</button>
+            <button className="btn" onClick={onBack}>Main Menu</button>
           </div>
         </div>
       </div>
