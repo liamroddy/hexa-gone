@@ -99,13 +99,14 @@
   }
 }
 
-.bottom-buttons {
-  display: flex;
-  gap: 1rem;
-}
-
-.bottom-buttons .btn {
-  margin-top: 0;
+.btn-pause {
+  background: transparent;
+  color: var(--colour-text);
+  font-size: 1.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 2px solid var(--colour-border-subtle);
+  border-radius: 8px;
+  line-height: 1;
 }
 
 .modal-overlay {
