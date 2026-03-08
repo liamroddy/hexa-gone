@@ -63,15 +63,15 @@ export function arrowPath(size: number): string {
 }
 
 export function changerChevronPath(size: number): string {
-  const s = size * 0.28
-  const gap = size * 0.28
+  const s = size * 0.30
+  const gap = size * 0.38
   const chevrons: string[] = []
-  for (let i = 0; i < 3; i++) {
-    const cy = gap * (i - 1)
+  for (let i = 0; i < 2; i++) {
+    const cy = gap * (i - 0.5)
     chevrons.push(
-      `M ${-s * 0.5},${cy + s * 0.4}`,
+      `M ${-s * 0.55},${cy + s * 0.4}`,
       `L 0,${cy - s * 0.4}`,
-      `L ${s * 0.5},${cy + s * 0.4}`,
+      `L ${s * 0.55},${cy + s * 0.4}`,
     )
   }
   return chevrons.join(' ')
