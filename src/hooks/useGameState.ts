@@ -12,7 +12,9 @@ interface GameState {
   activeIds: Set<string>
   animStates: Map<string, AnimEntry>
   isWon: boolean
+  isGameOver: boolean
   piecesRemaining: number
+  movesRemaining: number
   handleHexClick: (node: HexNodeData) => void
   newGame: () => void
   retry: () => void
@@ -32,7 +34,9 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
     [board.playableNodes],
   )
 
+  const initialMoves = board.playableNodes.length
   const [activeIds, setActiveIds] = useState(() => new Set(board.playableNodes.map(n => n.id)))
+  const [movesRemaining, setMovesRemaining] = useState(initialMoves)
   const [animStates, setAnimStates] = useState<Map<string, AnimEntry>>(new Map())
   const animatingIds = useRef(new Set<string>())
   const [animCount, setAnimCount] = useState(0)
@@ -41,6 +45,7 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
 
   useEffect(() => {
     setActiveIds(new Set(board.playableNodes.map(n => n.id)))
+    setMovesRemaining(board.playableNodes.length)
     setAnimStates(new Map())
     animatingIds.current = new Set()
     setAnimCount(0)
@@ -72,6 +77,7 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
       node.arrowDirection = initialArrows.get(node.id)
     }
     setActiveIds(new Set(board.playableNodes.map(n => n.id)))
+    setMovesRemaining(board.playableNodes.length)
     setAnimStates(new Map())
     animatingIds.current = new Set()
     setAnimCount(0)
@@ -80,10 +86,12 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
   const handleHexClick = useCallback((node: HexNodeData) => {
     if (animatingIds.current.has(node.id)) return
     if (!activeIds.has(node.id)) return
+    if (movesRemaining <= 0) return
 
     const result = resolveSlide(node, board.nodeMap, activeIds, board.changerMap)
     if (!result) return
 
+    setMovesRemaining(m => m - 1)
     markAnimating(node.id)
 
     if (result.result === 'escape') {
@@ -102,7 +110,7 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
         setNodeAnim, () => clearAnimating(node.id),
       )
     }
-  }, [activeIds, board.nodeMap, board.changerMap, layout, setNodeAnim, markAnimating, clearAnimating])
+  }, [activeIds, movesRemaining, board.nodeMap, board.changerMap, layout, setNodeAnim, markAnimating, clearAnimating])
 
   return {
     nodes: board.nodes,
@@ -111,7 +119,9 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
     activeIds,
     animStates,
     isWon: activeIds.size === 0 && animCount === 0,
+    isGameOver: movesRemaining <= 0 && activeIds.size > 0 && animCount === 0,
     piecesRemaining: activeIds.size,
+    movesRemaining,
     handleHexClick,
     newGame,
     retry,

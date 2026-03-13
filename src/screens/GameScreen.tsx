@@ -19,14 +19,15 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
   const [paused, setPaused] = useState(false)
 
   const {
-    nodes, activeIds, animStates, isWon, piecesRemaining,
+    nodes, activeIds, animStates, isWon, isGameOver,
+    piecesRemaining, movesRemaining,
     handleHexClick, newGame, retry, changerMap,
   } = useGameState(radius, hexSize)
 
   function renderTopBar() {
     return (
       <div style={{ position: 'absolute', top: '1rem', left: 0, right: 0, zIndex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '0 1rem' }}>
-        <p className="pieces-left" style={{ margin: 0 }}>{piecesRemaining} pieces remaining</p>
+        <p className="pieces-left" style={{ margin: 0 }}>{piecesRemaining} pieces remaining · {movesRemaining} moves left</p>
         <button
           className="btn btn-pause"
           onClick={() => setPaused(true)}
@@ -71,6 +72,21 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
     )
   }
 
+  function renderGameOverModal() {
+    if (!isGameOver) return null
+    return (
+      <div className="modal-overlay" style={{ zIndex: 2 }}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <p className="win-message">Out of moves!</p>
+          <div className="modal-buttons">
+            <button className="btn btn-medium" onClick={retry}>Retry</button>
+            <button className="btn" onClick={onBack}>Main Menu</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="screen game-screen" style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -89,6 +105,7 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
       {renderTopBar()}
       {renderPauseModal()}
       {renderWinModal()}
+      {renderGameOverModal()}
     </div>
   )
 }
