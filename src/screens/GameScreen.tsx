@@ -21,7 +21,7 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
   const {
     nodes, activeIds, animStates, isWon, isGameOver,
     piecesRemaining, movesRemaining,
-    handleHexClick, newGame, retry, changerMap,
+    handleHexClick, newGame, retry, changerMap, bombMap,
   } = useGameState(radius, hexSize)
 
   function renderTopBar() {
@@ -98,6 +98,7 @@ export default function GameScreen({ radius = 2, onBack }: GameScreenProps) {
             animStates={animStates}
             activeIds={activeIds}
             changerMap={changerMap}
+            bombMap={bombMap}
           />
         </div>
       </div>

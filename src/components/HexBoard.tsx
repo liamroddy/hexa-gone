@@ -1,4 +1,4 @@
-import type { HexNodeData, AnimEntry, ChangerMap } from '../types'
+import type { HexNodeData, AnimEntry, ChangerMap, BombMap } from '../types'
 import HexNode from './HexNode'
 import { hexPoints, changerChevronPath, ARROW_ROTATION } from './hexGeometry'
 import { createLayout, DEPTH_FACTOR } from '../utils/hexLayout'
@@ -10,6 +10,7 @@ interface HexBoardProps {
   animStates?: Map<string, AnimEntry>
   activeIds?: Set<string>
   changerMap?: ChangerMap
+  bombMap?: BombMap
 }
 
 export default function HexBoard({
@@ -19,6 +20,7 @@ export default function HexBoard({
   animStates = new Map(),
   activeIds,
   changerMap = {},
+  bombMap = new Set(),
 }: HexBoardProps) {
   const layout = createLayout(hexSize)
 
@@ -83,6 +85,26 @@ export default function HexBoard({
                   opacity="0.85"
                 />
               </g>
+            </g>
+          )
+        })}
+      </g>
+
+      <g aria-hidden="true">
+        {positioned.map(({ node, x, y }) => {
+          if (!bombMap.has(node.id)) return null
+          const bs = hexSize * 0.55
+          return (
+            <g key={`bomb-${node.id}`} transform={`translate(${x},${y})`}>
+              <circle cx={0} cy={bs * 0.1} r={bs * 0.55} fill="#1a1a2e" stroke="#555" strokeWidth="1.5" />
+              <rect x={-bs * 0.08} y={-bs * 0.45} width={bs * 0.16} height={bs * 0.15} rx={bs * 0.04} fill="#888" />
+              <path
+                d={`M 0,${-bs * 0.45} Q ${bs * 0.2},${-bs * 0.7} ${bs * 0.05},${-bs * 0.85}`}
+                fill="none" stroke="#c8a050" strokeWidth="1.5" strokeLinecap="round"
+              />
+              <circle cx={bs * 0.05} cy={-bs * 0.88} r={bs * 0.1} fill="#ff6600" opacity="0.9" />
+              <circle cx={bs * 0.05} cy={-bs * 0.88} r={bs * 0.06} fill="#ffcc00" />
+              <circle cx={-bs * 0.15} cy={-bs * 0.08} r={bs * 0.12} fill="white" opacity="0.25" />
             </g>
           )
         })}

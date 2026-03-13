@@ -23,11 +23,15 @@ export type NodeMap = Record<string, HexNodeData>
 /** Map of node id → changer direction */
 export type ChangerMap = Record<string, Direction>
 
+/** Set of node ids that contain bombs */
+export type BombMap = Set<string>
+
 /** Board returned by the generator */
 export interface Board {
   nodes: HexNodeData[]
   nodeMap: NodeMap
   changerMap: ChangerMap
+  bombMap: BombMap
   playableNodes: HexNodeData[]
 }
 
@@ -41,9 +45,10 @@ export interface SlideSegment {
 export type SlideResult =
   | { result: 'escape'; path: string[]; segments: SlideSegment[] }
   | { result: 'blocked'; blockedById: string; path: string[]; segments: SlideSegment[] }
+  | { result: 'bomb'; bombId: string; path: string[]; segments: SlideSegment[] }
 
 /** Animation state label */
-export type AnimStateName = 'rolling' | 'falling' | 'returning' | 'hit' | 'gone'
+export type AnimStateName = 'rolling' | 'falling' | 'returning' | 'hit' | 'gone' | 'exploding'
 
 /** Data carried alongside an animation state */
 export interface AnimData {
@@ -56,6 +61,7 @@ export interface AnimData {
   currentDir?: Direction
   hitAtHops?: number
   flashT?: number
+  explodeT?: number
 }
 
 /** Entry stored in the animStates map */

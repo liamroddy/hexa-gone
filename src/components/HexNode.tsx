@@ -30,6 +30,44 @@ export default function HexNode({ node, x, y, size = 40, onClick, animState, ani
   const rotation = activeDir ? (ARROW_ROTATION[activeDir] ?? 0) : 0
   const tiltAngle = dirAngle || 0
 
+  // Explosion burst effect
+  if (animState === 'exploding') {
+    const t = animData?.explodeT ?? 0
+    const burstRadius = size * (0.5 + t * 2)
+    return (
+      <g
+        className="hex-node"
+        transform={`translate(${x + translateX},${y + translateY})`}
+        style={{ opacity }}
+      >
+        <g transform={`scale(${scaleX},${scaleY})`}>
+          <polygon points={top} fill={palette.top} stroke="var(--colour-highlight, #00e0ff)" strokeWidth="2" />
+          <polygon points={left} fill={palette.left} stroke={palette.left} strokeWidth="0.5" />
+          <polygon points={right} fill={palette.right} stroke={palette.right} strokeWidth="0.5" />
+          <polygon points={bottom} fill={palette.bottom} stroke={palette.bottom} strokeWidth="0.5" />
+        </g>
+        {/* Explosion burst rings */}
+        <circle cx={0} cy={0} r={burstRadius * 0.6} fill="none" stroke="#ff6600" strokeWidth={3 * (1 - t)} opacity={1 - t} />
+        <circle cx={0} cy={0} r={burstRadius} fill="none" stroke="#ffcc00" strokeWidth={2 * (1 - t)} opacity={0.7 * (1 - t)} />
+        {/* Explosion particles */}
+        {[0, 60, 120, 180, 240, 300].map((angle, i) => {
+          const rad = (angle * Math.PI) / 180
+          const dist = burstRadius * 0.8
+          return (
+            <circle
+              key={i}
+              cx={Math.cos(rad) * dist}
+              cy={Math.sin(rad) * dist}
+              r={size * 0.08 * (1 - t)}
+              fill="#ff4400"
+              opacity={1 - t}
+            />
+          )
+        })}
+      </g>
+    )
+  }
+
   return (
     <g
       className="hex-node"

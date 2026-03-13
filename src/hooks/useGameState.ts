@@ -1,14 +1,16 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
-import type { HexNodeData, AnimEntry, Direction, ChangerMap, NodeMap } from '../types'
+import type { HexNodeData, AnimEntry, Direction, ChangerMap, BombMap, NodeMap } from '../types'
 import { generateSolvableBoard } from '../utils/boardGenerator'
 import { resolveSlide } from '../utils/gameLogic'
 import { createLayout } from '../utils/hexLayout'
-import { orchestrateEscape, orchestrateBlocked } from './animationOrchestrator'
+import { ALL_DIRECTIONS } from '../utils/hexDirections'
+import { orchestrateEscape, orchestrateBlocked, orchestrateBomb } from './animationOrchestrator'
 
 interface GameState {
   nodes: HexNodeData[]
   nodeMap: NodeMap
   changerMap: ChangerMap
+  bombMap: BombMap
   activeIds: Set<string>
   animStates: Map<string, AnimEntry>
   isWon: boolean
@@ -34,8 +36,10 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
     [board.playableNodes],
   )
 
+  // Move counter = playable tiles only (bombs don't count)
   const initialMoves = board.playableNodes.length
   const [activeIds, setActiveIds] = useState(() => new Set(board.playableNodes.map(n => n.id)))
+  const [bombIds, setBombIds] = useState(() => new Set(board.bombMap))
   const [movesRemaining, setMovesRemaining] = useState(initialMoves)
   const [animStates, setAnimStates] = useState<Map<string, AnimEntry>>(new Map())
   const animatingIds = useRef(new Set<string>())
@@ -45,11 +49,12 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
 
   useEffect(() => {
     setActiveIds(new Set(board.playableNodes.map(n => n.id)))
+    setBombIds(new Set(board.bombMap))
     setMovesRemaining(board.playableNodes.length)
     setAnimStates(new Map())
     animatingIds.current = new Set()
     setAnimCount(0)
-  }, [board.playableNodes])
+  }, [board.playableNodes, board.bombMap])
 
   const setNodeAnim = useCallback((nodeId: string, value: AnimEntry | null) => {
     setAnimStates(prev => {
@@ -77,18 +82,19 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
       node.arrowDirection = initialArrows.get(node.id)
     }
     setActiveIds(new Set(board.playableNodes.map(n => n.id)))
+    setBombIds(new Set(board.bombMap))
     setMovesRemaining(board.playableNodes.length)
     setAnimStates(new Map())
     animatingIds.current = new Set()
     setAnimCount(0)
-  }, [board.playableNodes, initialArrows])
+  }, [board.playableNodes, board.bombMap, initialArrows])
 
   const handleHexClick = useCallback((node: HexNodeData) => {
     if (animatingIds.current.has(node.id)) return
     if (!activeIds.has(node.id)) return
     if (movesRemaining <= 0) return
 
-    const result = resolveSlide(node, board.nodeMap, activeIds, board.changerMap)
+    const result = resolveSlide(node, board.nodeMap, activeIds, board.changerMap, bombIds)
     if (!result) return
 
     setMovesRemaining(m => m - 1)
@@ -109,13 +115,53 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
         node.id, result.segments, layout.stepPixelForDir,
         setNodeAnim, () => clearAnimating(node.id),
       )
+    } else if (result.result === 'bomb') {
+      // Find all active tiles adjacent to the bomb
+      const bombNode = board.nodeMap[result.bombId]
+      const blastVictims: string[] = []
+      if (bombNode) {
+        for (const dir of ALL_DIRECTIONS) {
+          const neighborId = bombNode.neighbors[dir]
+          if (neighborId && activeIds.has(neighborId) && neighborId !== node.id) {
+            blastVictims.push(neighborId)
+          }
+        }
+      }
+
+      // Remove the sliding tile, bomb, and all blast victims from active
+      setActiveIds(prev => {
+        const next = new Set(prev)
+        next.delete(node.id)
+        for (const vid of blastVictims) next.delete(vid)
+        return next
+      })
+      // Remove the bomb
+      setBombIds(prev => {
+        const next = new Set(prev)
+        next.delete(result.bombId)
+        return next
+      })
+
+      // Mark all blast victims as animating
+      for (const vid of blastVictims) markAnimating(vid)
+
+      orchestrateBomb(
+        node.id, result.segments, layout.stepPixelForDir,
+        setNodeAnim, blastVictims,
+        () => {
+          clearAnimating(node.id)
+          for (const vid of blastVictims) clearAnimating(vid)
+        },
+        node.arrowDirection,
+      )
     }
-  }, [activeIds, movesRemaining, board.nodeMap, board.changerMap, layout, setNodeAnim, markAnimating, clearAnimating])
+  }, [activeIds, bombIds, movesRemaining, board.nodeMap, board.changerMap, layout, setNodeAnim, markAnimating, clearAnimating])
 
   return {
     nodes: board.nodes,
     nodeMap: board.nodeMap,
     changerMap: board.changerMap,
+    bombMap: bombIds,
     activeIds,
     animStates,
     isWon: activeIds.size === 0 && animCount === 0,

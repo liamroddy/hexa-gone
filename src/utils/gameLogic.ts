@@ -1,4 +1,4 @@
-import type { HexNodeData, NodeMap, ChangerMap, SlideResult, SlideSegment, Direction } from '../types'
+import type { HexNodeData, NodeMap, ChangerMap, BombMap, SlideResult, SlideSegment, Direction } from '../types'
 
 /**
  * Resolves a hex slide in its arrow direction.
@@ -6,6 +6,7 @@ import type { HexNodeData, NodeMap, ChangerMap, SlideResult, SlideSegment, Direc
  * Returns:
  *  - { result: 'escape', path, segments } — slides off the board edge
  *  - { result: 'blocked', blockedById, path, segments } — hits an active node
+ *  - { result: 'bomb', bombId, path, segments } — hits a bomb hex
  *  - null — node has no arrow direction
  *
  * `segments` describes direction changes: [{dir, count}, ...] for animation.
@@ -15,6 +16,7 @@ export function resolveSlide(
   nodeMap: NodeMap,
   activeNodeIds: Set<string>,
   changerMap: ChangerMap = {},
+  bombMap: BombMap = new Set(),
 ): SlideResult | null {
   const dir = node.arrowDirection
   if (!dir) return null
@@ -30,6 +32,14 @@ export function resolveSlide(
     if (activeNodeIds.has(currentId)) {
       if (segCount > 0) segments.push({ dir: currentDir, count: segCount })
       return { result: 'blocked', blockedById: currentId, path, segments }
+    }
+
+    // Check if this hex contains a bomb
+    if (bombMap.has(currentId)) {
+      segCount++
+      segments.push({ dir: currentDir, count: segCount })
+      path.push(currentId)
+      return { result: 'bomb', bombId: currentId, path, segments }
     }
 
     path.push(currentId)

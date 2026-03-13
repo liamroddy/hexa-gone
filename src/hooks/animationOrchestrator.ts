@@ -5,6 +5,7 @@ const HOP_DURATION   = 220
 const FALL_DURATION  = 350
 const HIT_FLASH_DUR  = 180
 const RETURN_HOP_DUR = 180
+const EXPLODE_DURATION = 400
 
 function buildHopOffsets(
   segments: SlideSegment[],
@@ -226,5 +227,67 @@ export function orchestrateBlocked(
         })
       })
     },
+  )
+}
+
+
+export function orchestrateBomb(
+  nodeId: string,
+  segments: SlideSegment[],
+  stepPixelForDir: (dir: Direction) => Point,
+  setNodeAnim: SetNodeAnimFn,
+  blastNodeIds: string[],
+  onComplete: () => void,
+  _arrowDir: Direction | undefined,
+): void {
+  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
+  const totalHops = offsets.length
+
+  const doExplode = (): void => {
+    // Explode the sliding tile and all blast victims simultaneously
+    const allExploding = [nodeId, ...blastNodeIds]
+    let completed = 0
+    const total = allExploding.length
+
+    for (const id of allExploding) {
+      const isSlider = id === nodeId
+      animateValue(EXPLODE_DURATION, (t) => {
+        setNodeAnim(id, {
+          state: 'exploding',
+          data: {
+            explodeT: t,
+            baseOffsetX: isSlider ? endX : 0,
+            baseOffsetY: isSlider ? endY : 0,
+          },
+        })
+      }, () => {
+        setNodeAnim(id, { state: 'gone', data: {} })
+        completed++
+        if (completed >= total) onComplete()
+      })
+    }
+  }
+
+  if (totalHops === 0) {
+    doExplode()
+    return
+  }
+
+  animateSegmentHops(segments, stepPixelForDir, HOP_DURATION,
+    (globalHop, t) => {
+      const hop = offsets[globalHop]!
+      setNodeAnim(nodeId, {
+        state: 'rolling',
+        data: {
+          hopProgress: t,
+          stepX: hop.stepX,
+          stepY: hop.stepY,
+          baseOffsetX: hop.x,
+          baseOffsetY: hop.y,
+          currentDir: hop.dir,
+        },
+      })
+    },
+    doExplode,
   )
 }

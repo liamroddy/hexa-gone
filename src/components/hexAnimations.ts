@@ -74,6 +74,14 @@ export function computeRollValues({ animState, animData = {}, direction, size: _
       const intensity = Math.round(255 * flash)
       fillColor = `rgb(${intensity},${intensity},${intensity})`
     }
+  } else if (animState === 'exploding') {
+    translateX = baseOffsetX
+    translateY = baseOffsetY
+    const t = animData.explodeT ?? 0
+    const scale = 1 + t * 0.8
+    scaleX = scale
+    scaleY = scale
+    opacity = 1 - easeOutQuad(t)
   }
 
   return { translateX, translateY, scaleX, scaleY, opacity, fillColor, showBottom, rotateZ: 0, dirAngle }
