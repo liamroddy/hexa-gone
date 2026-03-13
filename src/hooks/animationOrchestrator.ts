@@ -239,13 +239,23 @@ export function orchestrateBomb(
   blastNodeIds: string[],
   onComplete: () => void,
   _arrowDir: Direction | undefined,
+  bombId?: string,
 ): void {
   const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
   const totalHops = offsets.length
 
+  // Keep blast victims and bomb visible while the slider rolls toward the bomb
+  for (const id of blastNodeIds) {
+    setNodeAnim(id, { state: 'waiting', data: {} })
+  }
+  if (bombId) {
+    setNodeAnim(bombId, { state: 'waiting', data: {} })
+  }
+
   const doExplode = (): void => {
-    // Explode the sliding tile and all blast victims simultaneously
+    // Now that the slider has arrived, explode everything
     const allExploding = [nodeId, ...blastNodeIds]
+    if (bombId) allExploding.push(bombId)
     let completed = 0
     const total = allExploding.length
 

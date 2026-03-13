@@ -48,7 +48,7 @@ export type SlideResult =
   | { result: 'bomb'; bombId: string; path: string[]; segments: SlideSegment[] }
 
 /** Animation state label */
-export type AnimStateName = 'rolling' | 'falling' | 'returning' | 'hit' | 'gone' | 'exploding'
+export type AnimStateName = 'rolling' | 'falling' | 'returning' | 'hit' | 'gone' | 'exploding' | 'waiting'
 
 /** Data carried alongside an animation state */
 export interface AnimData {

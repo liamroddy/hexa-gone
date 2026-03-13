@@ -142,8 +142,9 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
         return next
       })
 
-      // Mark all blast victims as animating
+      // Mark all blast victims and the bomb as animating
       for (const vid of blastVictims) markAnimating(vid)
+      markAnimating(result.bombId)
 
       orchestrateBomb(
         node.id, result.segments, layout.stepPixelForDir,
@@ -151,8 +152,10 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
         () => {
           clearAnimating(node.id)
           for (const vid of blastVictims) clearAnimating(vid)
+          clearAnimating(result.bombId)
         },
         node.arrowDirection,
+        result.bombId,
       )
     }
   }, [activeIds, bombIds, movesRemaining, board.nodeMap, board.changerMap, layout, setNodeAnim, markAnimating, clearAnimating])

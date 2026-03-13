@@ -92,8 +92,15 @@ export default function HexBoard({
 
       <g aria-hidden="true">
         {positioned.map(({ node, x, y }) => {
-          if (!bombMap.has(node.id)) return null
+          if (!bombMap.has(node.id)) {
+            // Also show bomb if it has a waiting/exploding animation (deferred detonation)
+            const anim = animStates.get(node.id)
+            if (!anim || (anim.state !== 'waiting' && anim.state !== 'exploding')) return null
+          }
           const bs = hexSize * 0.55
+          const anim = animStates.get(node.id)
+          // Hide the bomb icon once explosion starts (the HexNode explosion effect takes over)
+          if (anim?.state === 'exploding' || anim?.state === 'gone') return null
           return (
             <g key={`bomb-${node.id}`} transform={`translate(${x},${y})`}>
               <circle cx={0} cy={bs * 0.1} r={bs * 0.55} fill="#1a1a2e" stroke="#555" strokeWidth="1.5" />

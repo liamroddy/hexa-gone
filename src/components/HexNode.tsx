@@ -15,6 +15,8 @@ interface HexNodeProps {
 
 export default function HexNode({ node, x, y, size = 40, onClick, animState, animData }: HexNodeProps) {
   if (animState === 'gone') return null
+  // Bomb nodes in 'waiting' state are kept visible by the bomb icon in HexBoard, not by HexNode
+  if (animState === 'waiting' && !node.arrowDirection) return null
 
   const {
     translateX, translateY,
