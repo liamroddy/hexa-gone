@@ -36,8 +36,8 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
     [board.playableNodes],
   )
 
-  // Move counter = playable tiles only (bombs don't count)
-  const initialMoves = board.playableNodes.length
+  // Move counter = minimum moves needed (accounts for bomb blast victims)
+  const initialMoves = board.minMoves
   const [activeIds, setActiveIds] = useState(() => new Set(board.playableNodes.map(n => n.id)))
   const [bombIds, setBombIds] = useState(() => new Set(board.bombMap))
   const [movesRemaining, setMovesRemaining] = useState(initialMoves)
@@ -50,7 +50,7 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
   useEffect(() => {
     setActiveIds(new Set(board.playableNodes.map(n => n.id)))
     setBombIds(new Set(board.bombMap))
-    setMovesRemaining(board.playableNodes.length)
+    setMovesRemaining(board.minMoves)
     setAnimStates(new Map())
     animatingIds.current = new Set()
     setAnimCount(0)
@@ -83,7 +83,7 @@ export function useGameState(radius = 2, hexSize = 30): GameState {
     }
     setActiveIds(new Set(board.playableNodes.map(n => n.id)))
     setBombIds(new Set(board.bombMap))
-    setMovesRemaining(board.playableNodes.length)
+    setMovesRemaining(board.minMoves)
     setAnimStates(new Map())
     animatingIds.current = new Set()
     setAnimCount(0)

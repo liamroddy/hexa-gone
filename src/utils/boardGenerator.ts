@@ -86,7 +86,7 @@ export function generateSolvableBoard(
     if (!anyChangerUsed) continue
 
     // --- Bomb placement ---
-    const bombMap = placeBombs(solveOrder, nodeMap, changerMap, changerPositions, desiredBombs)
+    const { bombMap, totalBlastVictims } = placeBombs(solveOrder, nodeMap, changerMap, changerPositions, desiredBombs)
 
     // Assign arrows/colors only to non-bomb playable nodes
     for (const { id, dir } of solveOrder) {
@@ -106,7 +106,7 @@ export function generateSolvableBoard(
       if (bn) { bn.arrowDirection = undefined; bn.color = undefined }
     }
 
-    return { nodes, nodeMap, changerMap, bombMap, playableNodes: finalPlayable }
+    return { nodes, nodeMap, changerMap, bombMap, playableNodes: finalPlayable, minMoves: finalPlayable.length - totalBlastVictims }
   }
 }
 
@@ -131,8 +131,9 @@ function placeBombs(
   changerMap: ChangerMap,
   changerPositions: Set<string>,
   desiredCount: number,
-): BombMap {
+): { bombMap: BombMap; totalBlastVictims: number } {
   const bombMap: BombMap = new Set()
+  let totalBlastVictims = 0
 
   const solveIndex = new Map<string, number>()
   // Build a map of each tile's assigned arrow direction from the solve order
@@ -222,9 +223,10 @@ function placeBombs(
     bombMap.add(cand.bombHexId)
     usedTriggers.add(cand.triggerIndex)
     usedBombHexes.add(cand.bombHexId)
+    totalBlastVictims += cand.blastVictims.length
   }
 
-  return bombMap
+  return { bombMap, totalBlastVictims }
 }
 
 /**

@@ -33,6 +33,7 @@ export interface Board {
   changerMap: ChangerMap
   bombMap: BombMap
   playableNodes: HexNodeData[]
+  minMoves: number
 }
 
 /** A segment of a slide path (one direction, N hops) */
