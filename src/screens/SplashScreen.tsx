@@ -1,23 +1,39 @@
-import type { DifficultyKey, DifficultyConfig } from '../types'
+import type { DifficultyKey, DifficultyConfig } from "../types";
 
 interface SplashScreenProps {
-  onStart: (key: DifficultyKey) => void
-  onHowTo: () => void
-  difficulties: Record<DifficultyKey, DifficultyConfig>
+  onStart: (key: DifficultyKey) => void;
+  onHowTo: () => void;
+  difficulties: Record<DifficultyKey, DifficultyConfig>;
 }
 
-export default function SplashScreen({ onStart, onHowTo, difficulties }: SplashScreenProps) {
+export default function SplashScreen({
+  onStart,
+  onHowTo,
+  difficulties,
+}: SplashScreenProps): React.JSX.Element {
   return (
     <div className="screen splash">
-      <h1 className="game-title">Hexa<br></br>Gone</h1>
+      <h1 className="game-title">
+        Hexa<br></br>Gone
+      </h1>
       <div className="button-group">
-        {(Object.entries(difficulties) as [DifficultyKey, DifficultyConfig][]).map(([key, { label }]) => (
-          <button key={key} className="btn btn-big" onClick={() => onStart(key)}>
+        {(
+          Object.entries(difficulties) as [DifficultyKey, DifficultyConfig][]
+        ).map(([key, { label }]) => (
+          <button
+            key={key}
+            className="btn btn-big"
+            onClick={() => {
+              onStart(key);
+            }}
+          >
             {label}
           </button>
         ))}
-        <button className="btn" onClick={onHowTo}>How to Play</button>
+        <button className="btn" onClick={onHowTo}>
+          How to Play
+        </button>
       </div>
     </div>
-  )
+  );
 }

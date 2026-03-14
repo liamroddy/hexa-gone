@@ -1,4 +1,12 @@
-import type { HexNodeData, NodeMap, ChangerMap, BombMap, SlideResult, SlideSegment, Direction } from '../types'
+import type {
+  HexNodeData,
+  NodeMap,
+  ChangerMap,
+  BombMap,
+  SlideResult,
+  SlideSegment,
+  Direction,
+} from "../types";
 
 /**
  * Resolves a hex slide in its arrow direction.
@@ -18,46 +26,54 @@ export function resolveSlide(
   changerMap: ChangerMap = {},
   bombMap: BombMap = new Set(),
 ): SlideResult | null {
-  const dir = node.arrowDirection
-  if (!dir) return null
+  const dir = node.arrowDirection;
+  if (!dir) {
+    return null;
+  }
 
-  const path: string[] = []
-  const segments: SlideSegment[] = []
-  let currentDir: Direction = dir
-  let segCount = 0
-  let currentId = node.neighbors[currentDir]
-  const visited = new Set<string>()
+  const path: string[] = [];
+  const segments: SlideSegment[] = [];
+  let currentDir: Direction = dir;
+  let segCount = 0;
+  let currentId = node.neighbors[currentDir];
+  const visited = new Set<string>();
 
   while (currentId !== null) {
     if (activeNodeIds.has(currentId)) {
-      if (segCount > 0) segments.push({ dir: currentDir, count: segCount })
-      return { result: 'blocked', blockedById: currentId, path, segments }
+      if (segCount > 0) {
+        segments.push({ dir: currentDir, count: segCount });
+      }
+      return { result: "blocked", blockedById: currentId, path, segments };
     }
 
     // Check if this hex contains a bomb
     if (bombMap.has(currentId)) {
-      segCount++
-      segments.push({ dir: currentDir, count: segCount })
-      path.push(currentId)
-      return { result: 'bomb', bombId: currentId, path, segments }
+      segCount++;
+      segments.push({ dir: currentDir, count: segCount });
+      path.push(currentId);
+      return { result: "bomb", bombId: currentId, path, segments };
     }
 
-    path.push(currentId)
-    segCount++
+    path.push(currentId);
+    segCount++;
 
-    const changerDir = changerMap[currentId]
+    const changerDir = changerMap[currentId];
     if (changerDir && changerDir !== currentDir) {
-      if (visited.has(currentId)) break
-      visited.add(currentId)
-      segments.push({ dir: currentDir, count: segCount })
-      currentDir = changerDir
-      segCount = 0
+      if (visited.has(currentId)) {
+        break;
+      }
+      visited.add(currentId);
+      segments.push({ dir: currentDir, count: segCount });
+      currentDir = changerDir;
+      segCount = 0;
     }
 
-    const nextNode = nodeMap[currentId]
-    currentId = nextNode ? nextNode.neighbors[currentDir] : null
+    const nextNode = nodeMap[currentId];
+    currentId = nextNode ? nextNode.neighbors[currentDir] : null;
   }
 
-  if (segCount > 0) segments.push({ dir: currentDir, count: segCount })
-  return { result: 'escape', path, segments }
+  if (segCount > 0) {
+    segments.push({ dir: currentDir, count: segCount });
+  }
+  return { result: "escape", path, segments };
 }

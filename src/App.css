@@ -8,7 +8,11 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--colour-bg-deep) 0%, var(--colour-bg-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--colour-bg-deep) 0%,
+    var(--colour-bg-dark) 100%
+  );
   color: var(--colour-text);
   gap: 1.5rem;
   padding: 2rem;
@@ -47,7 +51,9 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  transition: transform 0.1s ease, opacity 0.1s ease;
+  transition:
+    transform 0.1s ease,
+    opacity 0.1s ease;
 
   background: transparent;
   color: var(--colour-text);
@@ -87,8 +93,6 @@
     line-height: 1;
   }
 }
-
-
 
 .modal-overlay {
   position: fixed;
@@ -134,6 +138,10 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

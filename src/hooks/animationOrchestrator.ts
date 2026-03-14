@@ -1,30 +1,42 @@
-import type { Direction, Point, SlideSegment, HopOffset, SetNodeAnimFn } from '../types'
-import { animateValue } from '../utils/animate'
+import type {
+  Direction,
+  Point,
+  SlideSegment,
+  HopOffset,
+  SetNodeAnimFn,
+} from "../types";
+import { animateValue } from "../utils/animate";
 
-const HOP_DURATION   = 220
-const FALL_DURATION  = 350
-const HIT_FLASH_DUR  = 180
-const RETURN_HOP_DUR = 180
-const EXPLODE_DURATION = 400
+const HOP_DURATION = 220;
+const FALL_DURATION = 350;
+const HIT_FLASH_DUR = 180;
+const RETURN_HOP_DUR = 180;
+const EXPLODE_DURATION = 400;
 
 function buildHopOffsets(
   segments: SlideSegment[],
   stepPixelForDir: (dir: Direction) => Point,
 ): { offsets: HopOffset[]; endX: number; endY: number } {
-  const offsets: HopOffset[] = []
-  let cumulativeX = 0
-  let cumulativeY = 0
+  const offsets: HopOffset[] = [];
+  let cumulativeX = 0;
+  let cumulativeY = 0;
 
   for (const seg of segments) {
-    const step = stepPixelForDir(seg.dir)
+    const step = stepPixelForDir(seg.dir);
     for (let i = 0; i < seg.count; i++) {
-      offsets.push({ x: cumulativeX, y: cumulativeY, stepX: step.x, stepY: step.y, dir: seg.dir })
-      cumulativeX += step.x
-      cumulativeY += step.y
+      offsets.push({
+        x: cumulativeX,
+        y: cumulativeY,
+        stepX: step.x,
+        stepY: step.y,
+        dir: seg.dir,
+      });
+      cumulativeX += step.x;
+      cumulativeY += step.y;
     }
   }
 
-  return { offsets, endX: cumulativeX, endY: cumulativeY }
+  return { offsets, endX: cumulativeX, endY: cumulativeY };
 }
 
 function animateSegmentHops(
@@ -34,26 +46,43 @@ function animateSegmentHops(
   onHopFrame: (globalHop: number, t: number) => void,
   onDone: () => void,
 ): void {
-  let segIdx = 0
-  let globalHop = 0
+  let segIdx = 0;
+  let globalHop = 0;
 
   const nextSegment = (): void => {
-    if (segIdx >= segments.length) { onDone(); return }
-    const seg = segments[segIdx]!
-    let hop = 0
+    if (segIdx >= segments.length) {
+      onDone();
+      return;
+    }
+    const seg = segments[segIdx];
+    if (!seg) {
+      onDone();
+      return;
+    }
+    let hop = 0;
 
     const nextHop = (): void => {
-      if (hop >= seg.count) { segIdx++; nextSegment(); return }
-      const currentGlobal = globalHop
-      animateValue(perHopDur, (t) => onHopFrame(currentGlobal, t), () => {
-        hop++
-        globalHop++
-        nextHop()
-      })
-    }
-    nextHop()
-  }
-  nextSegment()
+      if (hop >= seg.count) {
+        segIdx++;
+        nextSegment();
+        return;
+      }
+      const currentGlobal = globalHop;
+      animateValue(
+        perHopDur,
+        (t) => {
+          onHopFrame(currentGlobal, t);
+        },
+        () => {
+          hop++;
+          globalHop++;
+          nextHop();
+        },
+      );
+    };
+    nextHop();
+  };
+  nextSegment();
 }
 
 function flashAnimation(
@@ -61,19 +90,23 @@ function flashAnimation(
   onFrame: (flashT: number) => void,
   onDone: () => void,
 ): void {
-  animateValue(duration, (t) => {
-    const flashT = t < 0.5 ? t * 2 : (1 - t) * 2
-    onFrame(flashT)
-  }, onDone)
+  animateValue(
+    duration,
+    (t) => {
+      const flashT = t < 0.5 ? t * 2 : (1 - t) * 2;
+      onFrame(flashT);
+    },
+    onDone,
+  );
 }
 
 interface ReverseFrame {
-  hopProgress: number
-  stepX: number
-  stepY: number
-  baseOffsetX: number
-  baseOffsetY: number
-  dir: Direction
+  hopProgress: number;
+  stepX: number;
+  stepY: number;
+  baseOffsetX: number;
+  baseOffsetY: number;
+  dir: Direction;
 }
 
 function reverseHopAnimation(
@@ -81,27 +114,38 @@ function reverseHopAnimation(
   onFrame: (frame: ReverseFrame) => void,
   onDone: () => void,
 ): void {
-  const reversed = [...hopOffsets].reverse()
-  let idx = 0
+  const reversed = [...hopOffsets].reverse();
+  let idx = 0;
 
   const nextHop = (): void => {
-    if (idx >= reversed.length) { onDone(); return }
-    const hop = reversed[idx]!
-    animateValue(RETURN_HOP_DUR, (t) => {
-      onFrame({
-        hopProgress: t,
-        stepX: -hop.stepX,
-        stepY: -hop.stepY,
-        baseOffsetX: hop.x + hop.stepX,
-        baseOffsetY: hop.y + hop.stepY,
-        dir: hop.dir,
-      })
-    }, () => {
-      idx++
-      nextHop()
-    })
-  }
-  nextHop()
+    if (idx >= reversed.length) {
+      onDone();
+      return;
+    }
+    const hop = reversed[idx];
+    if (!hop) {
+      onDone();
+      return;
+    }
+    animateValue(
+      RETURN_HOP_DUR,
+      (t) => {
+        onFrame({
+          hopProgress: t,
+          stepX: -hop.stepX,
+          stepY: -hop.stepY,
+          baseOffsetX: hop.x + hop.stepX,
+          baseOffsetY: hop.y + hop.stepY,
+          dir: hop.dir,
+        });
+      },
+      () => {
+        idx++;
+        nextHop();
+      },
+    );
+  };
+  nextHop();
 }
 
 export function orchestrateEscape(
@@ -112,40 +156,51 @@ export function orchestrateEscape(
   onComplete: () => void,
   arrowDir: Direction | undefined,
 ): void {
-  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
-  const totalHops = offsets.length
-  const lastDir = segments.length > 0 ? segments[segments.length - 1]!.dir : arrowDir
+  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir);
+  const totalHops = offsets.length;
+  const lastDir =
+    segments.length > 0 ? segments[segments.length - 1]?.dir : arrowDir;
 
   const doFall = (): void => {
-    const fallStep = lastDir ? stepPixelForDir(lastDir) : { x: 0, y: 0 }
-    animateValue(FALL_DURATION, (t) => {
-      setNodeAnim(nodeId, {
-        state: 'falling',
-        data: {
-          hopProgress: t,
-          stepX: fallStep.x,
-          stepY: fallStep.y,
-          baseOffsetX: endX,
-          baseOffsetY: endY,
-          currentDir: lastDir,
-        },
-      })
-    }, () => {
-      setNodeAnim(nodeId, { state: 'gone', data: {} })
-      onComplete()
-    })
-  }
+    const fallStep = lastDir ? stepPixelForDir(lastDir) : { x: 0, y: 0 };
+    animateValue(
+      FALL_DURATION,
+      (t) => {
+        setNodeAnim(nodeId, {
+          state: "falling",
+          data: {
+            hopProgress: t,
+            stepX: fallStep.x,
+            stepY: fallStep.y,
+            baseOffsetX: endX,
+            baseOffsetY: endY,
+            currentDir: lastDir,
+          },
+        });
+      },
+      () => {
+        setNodeAnim(nodeId, { state: "gone", data: {} });
+        onComplete();
+      },
+    );
+  };
 
   if (totalHops === 0) {
-    doFall()
-    return
+    doFall();
+    return;
   }
 
-  animateSegmentHops(segments, stepPixelForDir, HOP_DURATION,
+  animateSegmentHops(
+    segments,
+    stepPixelForDir,
+    HOP_DURATION,
     (globalHop, t) => {
-      const hop = offsets[globalHop]!
+      const hop = offsets[globalHop];
+      if (!hop) {
+        return;
+      }
       setNodeAnim(nodeId, {
-        state: 'rolling',
+        state: "rolling",
         data: {
           hopProgress: t,
           stepX: hop.stepX,
@@ -154,10 +209,10 @@ export function orchestrateEscape(
           baseOffsetY: hop.y,
           currentDir: hop.dir,
         },
-      })
+      });
     },
     doFall,
-  )
+  );
 }
 
 export function orchestrateBlocked(
@@ -167,29 +222,40 @@ export function orchestrateBlocked(
   setNodeAnim: SetNodeAnimFn,
   onComplete: () => void,
 ): void {
-  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
-  const totalHops = offsets.length
+  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir);
+  const totalHops = offsets.length;
 
   if (totalHops === 0) {
-    const step = segments.length > 0 ? stepPixelForDir(segments[0]!.dir) : { x: 0, y: 0 }
-    flashAnimation(HIT_FLASH_DUR, (flashT) => {
-      setNodeAnim(nodeId, {
-        state: 'hit',
-        data: { hitAtHops: 0, flashT, stepX: step.x, stepY: step.y },
-      })
-    }, () => {
-      setNodeAnim(nodeId, null)
-      onComplete()
-    })
-    return
+    const firstSeg = segments[0];
+    const step = firstSeg ? stepPixelForDir(firstSeg.dir) : { x: 0, y: 0 };
+    flashAnimation(
+      HIT_FLASH_DUR,
+      (flashT) => {
+        setNodeAnim(nodeId, {
+          state: "hit",
+          data: { hitAtHops: 0, flashT, stepX: step.x, stepY: step.y },
+        });
+      },
+      () => {
+        setNodeAnim(nodeId, null);
+        onComplete();
+      },
+    );
+    return;
   }
 
   // Phase 1: roll forward
-  animateSegmentHops(segments, stepPixelForDir, HOP_DURATION,
+  animateSegmentHops(
+    segments,
+    stepPixelForDir,
+    HOP_DURATION,
     (globalHop, t) => {
-      const hop = offsets[globalHop]!
+      const hop = offsets[globalHop];
+      if (!hop) {
+        return;
+      }
       setNodeAnim(nodeId, {
-        state: 'rolling',
+        state: "rolling",
         data: {
           hopProgress: t,
           stepX: hop.stepX,
@@ -198,38 +264,52 @@ export function orchestrateBlocked(
           baseOffsetY: hop.y,
           currentDir: hop.dir,
         },
-      })
+      });
     },
     () => {
       // Phase 2: collision flash
-      flashAnimation(HIT_FLASH_DUR, (flashT) => {
-        setNodeAnim(nodeId, {
-          state: 'hit',
-          data: { hitAtHops: 0, flashT, stepX: 0, stepY: 0, baseOffsetX: endX, baseOffsetY: endY },
-        })
-      }, () => {
-        // Phase 3: roll back
-        reverseHopAnimation(offsets, (frame) => {
+      flashAnimation(
+        HIT_FLASH_DUR,
+        (flashT) => {
           setNodeAnim(nodeId, {
-            state: 'returning',
+            state: "hit",
             data: {
-              hopProgress: frame.hopProgress,
-              stepX: frame.stepX,
-              stepY: frame.stepY,
-              baseOffsetX: frame.baseOffsetX,
-              baseOffsetY: frame.baseOffsetY,
-              currentDir: frame.dir,
+              hitAtHops: 0,
+              flashT,
+              stepX: 0,
+              stepY: 0,
+              baseOffsetX: endX,
+              baseOffsetY: endY,
             },
-          })
-        }, () => {
-          setNodeAnim(nodeId, null)
-          onComplete()
-        })
-      })
+          });
+        },
+        () => {
+          // Phase 3: roll back
+          reverseHopAnimation(
+            offsets,
+            (frame) => {
+              setNodeAnim(nodeId, {
+                state: "returning",
+                data: {
+                  hopProgress: frame.hopProgress,
+                  stepX: frame.stepX,
+                  stepY: frame.stepY,
+                  baseOffsetX: frame.baseOffsetX,
+                  baseOffsetY: frame.baseOffsetY,
+                  currentDir: frame.dir,
+                },
+              });
+            },
+            () => {
+              setNodeAnim(nodeId, null);
+              onComplete();
+            },
+          );
+        },
+      );
     },
-  )
+  );
 }
-
 
 export function orchestrateBomb(
   nodeId: string,
@@ -241,53 +321,67 @@ export function orchestrateBomb(
   _arrowDir: Direction | undefined,
   bombId?: string,
 ): void {
-  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir)
-  const totalHops = offsets.length
+  const { offsets, endX, endY } = buildHopOffsets(segments, stepPixelForDir);
+  const totalHops = offsets.length;
 
   // Keep blast victims and bomb visible while the slider rolls toward the bomb
   for (const id of blastNodeIds) {
-    setNodeAnim(id, { state: 'waiting', data: {} })
+    setNodeAnim(id, { state: "waiting", data: {} });
   }
-  if (bombId) {
-    setNodeAnim(bombId, { state: 'waiting', data: {} })
+  if (bombId !== undefined) {
+    setNodeAnim(bombId, { state: "waiting", data: {} });
   }
 
   const doExplode = (): void => {
     // Now that the slider has arrived, explode everything
-    const allExploding = [nodeId, ...blastNodeIds]
-    if (bombId) allExploding.push(bombId)
-    let completed = 0
-    const total = allExploding.length
+    const allExploding = [nodeId, ...blastNodeIds];
+    if (bombId !== undefined) {
+      allExploding.push(bombId);
+    }
+    let completed = 0;
+    const total = allExploding.length;
 
     for (const id of allExploding) {
-      const isSlider = id === nodeId
-      animateValue(EXPLODE_DURATION, (t) => {
-        setNodeAnim(id, {
-          state: 'exploding',
-          data: {
-            explodeT: t,
-            baseOffsetX: isSlider ? endX : 0,
-            baseOffsetY: isSlider ? endY : 0,
-          },
-        })
-      }, () => {
-        setNodeAnim(id, { state: 'gone', data: {} })
-        completed++
-        if (completed >= total) onComplete()
-      })
+      const isSlider = id === nodeId;
+      animateValue(
+        EXPLODE_DURATION,
+        (t) => {
+          setNodeAnim(id, {
+            state: "exploding",
+            data: {
+              explodeT: t,
+              baseOffsetX: isSlider ? endX : 0,
+              baseOffsetY: isSlider ? endY : 0,
+            },
+          });
+        },
+        () => {
+          setNodeAnim(id, { state: "gone", data: {} });
+          completed++;
+          if (completed >= total) {
+            onComplete();
+          }
+        },
+      );
     }
-  }
+  };
 
   if (totalHops === 0) {
-    doExplode()
-    return
+    doExplode();
+    return;
   }
 
-  animateSegmentHops(segments, stepPixelForDir, HOP_DURATION,
+  animateSegmentHops(
+    segments,
+    stepPixelForDir,
+    HOP_DURATION,
     (globalHop, t) => {
-      const hop = offsets[globalHop]!
+      const hop = offsets[globalHop];
+      if (!hop) {
+        return;
+      }
       setNodeAnim(nodeId, {
-        state: 'rolling',
+        state: "rolling",
         data: {
           hopProgress: t,
           stepX: hop.stepX,
@@ -296,8 +390,8 @@ export function orchestrateBomb(
           baseOffsetY: hop.y,
           currentDir: hop.dir,
         },
-      })
+      });
     },
     doExplode,
-  )
+  );
 }
